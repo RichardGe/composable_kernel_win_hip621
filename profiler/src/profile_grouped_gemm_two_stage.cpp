@@ -30,9 +30,7 @@ namespace {
 std::vector<int> argToIntArray(char* input)
 {
     std::vector<int> out;
-
     std::istringstream in(input);
-
     std::string item;
 
     while(std::getline(in, item, ','))
@@ -50,7 +48,8 @@ int profile_grouped_gemm_two_stage(int argc, char* argv[])
         std::cout
             << "arg1: tensor operation (" OP_NAME ": " OP_DESC ")\n"
             << "arg2: data type (0: fp16; 1: bf16@int8; 2: bf16)\n"
-            << "arg3: matrix layout (0: A[m, k] * B[k, n] = C[m, n]);\n"
+            << "arg3: matrix layout (0: A[m, k] * B[k, n] = C[m, n],\n"
+            << "                     1: A[m, k] * B[n, k] = C[m, n])\n"
             << "arg4: verification (0: no; 1: yes)\n"
             << "arg5: initialization (0: no init; 1: integer value; 2: decimal value)\n"
             << "arg6: print tensor value (0: no; 1: yes)\n"
@@ -80,7 +79,7 @@ int profile_grouped_gemm_two_stage(int argc, char* argv[])
     auto StrideAs    = argToIntArray(argv[11]);
     auto StrideBs    = argToIntArray(argv[12]);
     auto StrideCs    = argToIntArray(argv[13]);
-    const int kbatch = argc == 15 ? std::stoi(argv[14]) : 1;
+    const int kbatch = argc >= 15 ? std::stoi(argv[14]) : 1;
 
     const int DefaultStrideA = Ks[0];
     const int DefaultStrideB = Ns[0];
@@ -97,8 +96,8 @@ int profile_grouped_gemm_two_stage(int argc, char* argv[])
     int n_iter   = 10;
     if(argc == 17)
     {
-        n_warmup = std::stoi(argv[16]);
-        n_iter   = std::stoi(argv[17]);
+        n_warmup = std::stoi(argv[15]);
+        n_iter   = std::stoi(argv[16]);
     }
 
     if(data_type == GemmDataType::F16_F16_F16 && layout == GemmMatrixLayout::MK_KN_MN)

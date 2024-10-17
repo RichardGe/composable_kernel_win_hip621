@@ -15,7 +15,6 @@
 #include "ck/library/tensor_operation_instance/gpu/grouped_gemm.hpp"
 
 #include "ck/library/utility/check_err.hpp"
-#include "ck/library/utility/convolution_parameter.hpp"
 #include "ck/library/utility/device_memory.hpp"
 #include "ck/library/utility/host_tensor.hpp"
 #include "ck/library/utility/host_tensor_generator.hpp"
