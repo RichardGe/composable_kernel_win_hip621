@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018-2023, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018-2024, Advanced Micro Devices, Inc. All rights reserved.
 
 #pragma once
 
@@ -164,7 +164,20 @@ bool profile_grouped_gemm_impl(int do_verification,
                                                                      BElementOp,
                                                                      CElementOp>;
 
-    const auto op_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    // If kbatch would be bigger than 1, then we will use SplitK version.
+    using DeviceOpSplitK = ck::tensor_operation::device::DeviceGroupedGemmSplitK<ALayout,
+                                                                                 BLayout,
+                                                                                 ck::Tuple<>,
+                                                                                 CLayout,
+                                                                                 ADataType,
+                                                                                 BDataType,
+                                                                                 ck::Tuple<>,
+                                                                                 CDataType,
+                                                                                 AElementOp,
+                                                                                 BElementOp,
+                                                                                 CElementOp>;
+
+    auto op_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp>::GetInstances();
 
     if(op_ptrs.size() <= 0)
@@ -221,31 +234,29 @@ bool profile_grouped_gemm_impl(int do_verification,
 
         auto invoker_ptr = gemm_ptr->MakeInvokerPointer();
 
-        DeviceMem gemm_desc_workspace(gemm_ptr->GetWorkSpaceSize(argument_ptr.get()));
+        std::size_t workspace_size = gemm_ptr->GetWorkSpaceSize(argument_ptr.get());
+        std::size_t kargs_size     = gemm_ptr->GetDeviceKernelArgSize(argument_ptr.get());
 
-        gemm_ptr->SetWorkSpacePointer(argument_ptr.get(), gemm_desc_workspace.GetDeviceBuffer());
-        std::string gemm_name = gemm_ptr->GetTypeString();
+        DeviceMem gemm_workspace, gemm_kargs;
 
-        using DeviceOpSplitK = ck::tensor_operation::device::DeviceGroupedGemmSplitK<ALayout,
-                                                                                     BLayout,
-                                                                                     ck::Tuple<>,
-                                                                                     CLayout,
-                                                                                     ADataType,
-                                                                                     BDataType,
-                                                                                     ck::Tuple<>,
-                                                                                     CDataType,
-                                                                                     AElementOp,
-                                                                                     BElementOp,
-                                                                                     CElementOp>;
-
-        // skip non-splitk grouped_gemm
-        if(dynamic_cast<DeviceOpSplitK*>(gemm_ptr.get()) == nullptr)
+        // The following is necessary since TwoStage kernel is using additional memory both
+        // for Workspace and kernel arguments.
+        if(kargs_size > 0)
         {
-            continue;
+            gemm_kargs.Realloc(kargs_size);
+            gemm_ptr->SetDeviceKernelArgs(argument_ptr.get(), gemm_kargs.GetDeviceBuffer());
         }
+        if(workspace_size > 0 && workspace_size != kargs_size)
+        {
+            gemm_workspace.Realloc(workspace_size);
+            gemm_ptr->SetWorkSpacePointer(argument_ptr.get(), gemm_workspace.GetDeviceBuffer());
+        }
+
+        std::string gemm_name = gemm_ptr->GetTypeString();
 
         std::vector<int> kbatch_list = {1, 2, 4, 8, 12, 16, 20, 24, 32, 48, 64};
 
+        // If the user will provide kbatch = 0, then we test predefined set of kbatch values.
         if(kbatch > 0)
         {
             kbatch_list = {kbatch};
@@ -253,11 +264,13 @@ bool profile_grouped_gemm_impl(int do_verification,
 
         for(std::size_t j = 0; j < kbatch_list.size(); j++)
         {
-
             auto kbatch_curr = kbatch_list[j];
 
-            dynamic_cast<DeviceOpSplitK*>(gemm_ptr.get())
-                ->SetKBatchSize(argument_ptr.get(), kbatch_curr);
+            if(kbatch_curr > 1 && dynamic_cast<DeviceOpSplitK*>(gemm_ptr.get()) != nullptr)
+            {
+                dynamic_cast<DeviceOpSplitK*>(gemm_ptr.get())
+                    ->SetKBatchSize(argument_ptr.get(), kbatch_curr);
+            }
 
             if(gemm_ptr->IsSupportedArgument(argument_ptr.get()))
             {
@@ -272,23 +285,38 @@ bool profile_grouped_gemm_impl(int do_verification,
                     bool instance_pass = true;
                     for(std::size_t i = 0; i < gemm_descs.size(); i++)
                     {
-
+                        // TODO: Fixme
+                        using ComputeDataType = ADataType;
                         c_device_buf[i]->FromDevice(c_m_n_device_results[i].mData.data());
+                        // Both the kernel and the reference use `AccDataType`, so an absolute error
+                        // of both of them is bounded by `K *
+                        // std::numeric_limits<AccDataType>::epsilon()`. Comparing one to another
+                        // can result in an absolute error as high as twice that value.
+                        double threshold =
+                            2 * gemm_descs[i].K_ * std::numeric_limits<AccDataType>::epsilon();
+                        // Handle the possible casting error of either AccDataType -> DataType or
+                        // DataType -> ComputeDataType.
+                        if constexpr(ck::is_same_v<CDataType, ck::bhalf_t> ||
+                                     ck::is_same_v<ComputeDataType, ck::bhalf_t>)
+                        {
+                            const double epsilon = std::pow(2, -7);
+                            // Maximum relative casting error when rounding to zero.
+                            threshold += epsilon * 2;
+                        }
+                        else if constexpr(ck::is_same_v<CDataType, ck::half_t> ||
+                                          ck::is_same_v<ComputeDataType, ck::half_t>)
+                        {
+                            const double epsilon = std::pow(2, -10);
+                            // Maximum relative casting error when rounding to zero.
+                            threshold += epsilon * 2;
+                        }
 
-                        if(std::is_same_v<CDataType, ck::half_t> && kbatch_curr > 1)
-                        {
-                            instance_pass =
-                                instance_pass && ck::utils::check_err(c_m_n_device_results[i],
-                                                                      c_m_n_host_results[i],
-                                                                      "Error: Incorrect results!",
-                                                                      0.06);
-                        }
-                        else
-                        {
-                            instance_pass =
-                                instance_pass && ck::utils::check_err(c_m_n_device_results[i],
-                                                                      c_m_n_host_results[i]);
-                        }
+                        instance_pass =
+                            instance_pass && ck::utils::check_err(c_m_n_device_results[i],
+                                                                  c_m_n_host_results[i],
+                                                                  "Error: Incorrect results!",
+                                                                  threshold,
+                                                                  threshold);
 
                         if(do_log)
                         {
