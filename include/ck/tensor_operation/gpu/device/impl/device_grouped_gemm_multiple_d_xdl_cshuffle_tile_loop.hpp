@@ -521,7 +521,7 @@ struct DeviceGroupedGemmMultipleDXdlCShuffleTileLoop
         ComputeTypeA,
         ComputeTypeB>;
 
-    using KernelArguments = GroupedGemmTileLoopKernelArguments<NumDTensor>;
+    using KernelArguments = GroupedGemmKernelArgument<NumDTensor>;
     using Block2ETileMap  = BlockToCTileMap_Grouped_M00_N0_M01Adapt<8, MPerBlock, NPerBlock>;
     using OffsettedLocalBlock2ETileMap = OffsettedBlockToCTileMap2<Block2ETileMap>;
 
@@ -935,12 +935,31 @@ struct DeviceGroupedGemmMultipleDXdlCShuffleTileLoop
         return str.str();
     }
 
+    void SetDeviceKernelArgs(Argument& arg,
+                             void* p_dev_kernel_args,
+                             const void* p_host_kernel_args) const
+    {
+        arg.p_dev_gemm_args_ = p_dev_kernel_args;
+        hip_check_error(hipMemcpy(p_dev_kernel_args,
+                                  p_host_kernel_args.data(),
+                                  GetDeviceKernelArgSize(&arg),
+                                  hipMemcpyHostToDevice));
+    }
+
+    virtual void SetDeviceKernelArgs(BaseArgument* p_arg,
+                                     void* p_dev_kernel_args,
+                                     const void* p_host_kernel_args) const override
+    {
+        return SetDeviceKernelArgs(
+            *dynamic_cast<Argument*>(p_arg), p_dev_kernel_args, p_host_kernel_args);
+    }
+
     void SetDeviceKernelArgs(Argument& arg, void* p_dev_kernel_args) const
     {
         arg.p_dev_gemm_args_ = p_dev_kernel_args;
     }
 
-    void SetDeviceKernelArgs(BaseArgument* p_arg, void* p_dev_kernel_args) const override
+    virtual void SetDeviceKernelArgs(BaseArgument* p_arg, void* p_dev_kernel_args) const override
     {
         return SetDeviceKernelArgs(*dynamic_cast<Argument*>(p_arg), p_dev_kernel_args);
     }
