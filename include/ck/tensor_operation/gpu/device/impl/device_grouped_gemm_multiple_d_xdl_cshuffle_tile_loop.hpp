@@ -941,7 +941,7 @@ struct DeviceGroupedGemmMultipleDXdlCShuffleTileLoop
     {
         arg.p_dev_gemm_args_ = p_dev_kernel_args;
         hip_check_error(hipMemcpy(p_dev_kernel_args,
-                                  p_host_kernel_args.data(),
+                                  p_host_kernel_args,
                                   GetDeviceKernelArgSize(&arg),
                                   hipMemcpyHostToDevice));
     }
