@@ -43,6 +43,18 @@ struct WarpGemmImpl
         const auto b_vec = b.get_thread_buffer().template get_as<BVec>()[I0];
         auto c_vec       = c.get_thread_buffer().template get_as<CVec>()[I0];
 
+        // if(threadIdx.x == 0) {
+        //     for(int i=0; i<AWarpTensor::get_thread_buffer_size(); ++i) {
+        //         printf("A[%d]: %d\n", i, static_cast<int32_t>(a_vec[i]));
+        //     }
+        //     for(int i=0; i<BWarpTensor::get_thread_buffer_size(); ++i) {
+        //         printf("B[%d]: %d\n", i, static_cast<int32_t>(b_vec[i]));
+        //     }
+        //     for(int i=0; i<CWarpTensor::get_thread_buffer_size(); ++i) {
+        //         printf("C[%d]: %d\n", i, static_cast<int32_t>(c_vec[i]));
+        //     }
+        // }
+
         // c_vec += a_vec * b_vec
         WarpGemmAttribute{}(c_vec, a_vec, b_vec);
 

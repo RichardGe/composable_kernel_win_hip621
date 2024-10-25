@@ -276,9 +276,24 @@ struct GemmPipelineAgBgCrMem : public BaseGemmPipelineAgBgCrMem<Problem>
             // initialize C
             tile_elementwise_inout([](auto& c) { c = 0; }, c_block_tile);
 
+            if(threadIdx.x == 0) {
+                printf("gemm_pipeline_ag_bg_cr_mem\n"); 
+                printf("A in: ");
+                static_for<0, 16, 1>{}([&](auto i) {
+                    printf("%f ", static_cast<float>(a_block_tiles.get(I0{}).get_thread_buffer()[i]));
+                });
+                printf("\nB in: ");
+                static_for<0, 16, 1>{}([&](auto i) {
+                    printf("%f ", static_cast<float>(b_block_tiles.get(I0{}).get_thread_buffer()[i]));
+                });
+                printf("\n");
+            }
             // LDS write 0
             LocalPrefill(a_copy_lds_window, a_block_tiles.get(I0{}), a_element_func);
             LocalPrefill(b_copy_lds_window, b_block_tiles.get(I0{}), b_element_func);
+
+            
+            // print a_block_tiles, b_block_tiles
 
             // Global prefetch [1, PrefetchStages]
             static_for<1, PrefetchStages, 1>{}([&](auto prefetch_idx) {
@@ -341,6 +356,7 @@ struct GemmPipelineAgBgCrMem : public BaseGemmPipelineAgBgCrMem<Problem>
 
             if constexpr(TailNum == TailNumber::One)
             {
+                //printf("TailNumOne\n");
                 block_sync_lds();
                 // block_gemm.LocalPrefetch();
                 block_gemm(c_block_tile, a_lds_gemm_window, b_lds_gemm_window);

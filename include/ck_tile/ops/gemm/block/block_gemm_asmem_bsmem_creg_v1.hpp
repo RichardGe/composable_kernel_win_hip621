@@ -138,6 +138,11 @@ struct BlockGemmASmemBSmemCRegV1
         constexpr auto c_warp_y_index_zeros = uniform_sequence_gen_t<CWarpDstr::NDimY, 0>{};
 
         // hot loop:
+
+        // if(threadIdx.x == 0) {
+        //     printf("block gemm\n");
+        // }
+
         static_for<0, KIterPerWarp, 1>{}([&](auto kIter) {
             static_for<0, MIterPerWarp, 1>{}([&](auto mIter) {
                 // read A warp tensor from A block window
@@ -162,6 +167,12 @@ struct BlockGemmASmemBSmemCRegV1
                         merge_sequences(sequence<mIter, nIter>{}, c_warp_y_index_zeros),
                         merge_sequences(sequence<1, 1>{}, c_warp_y_lengths),
                         c_warp_tensor.get_thread_buffer());
+
+                    // if(threadIdx.x == 0) {
+                    //     printf("C warp\n");
+                    //     tile_elementwise_inout([](auto& c) { printf("%f ", static_cast<float>(c));}, c_block_tensor);
+                    //     printf("\n");
+                    // }
                 });
             });
         });

@@ -67,6 +67,7 @@ int run_gemm_example(int argc, char* argv[])
     int n_repeat                = arg_parser.get_int("repeat");
 
     using ALayout = ck_tile::tensor_layout::gemm::RowMajor;
+    //using BLayout = ck_tile::tensor_layout::gemm::ColumnMajor;
     using BLayout = ck_tile::tensor_layout::gemm::ColumnMajor;
     using CLayout = ck_tile::tensor_layout::gemm::RowMajor;
 

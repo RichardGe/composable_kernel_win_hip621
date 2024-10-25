@@ -78,6 +78,10 @@ class TestCkTileGemmMemPipeline : public ::testing::Test
         const bool has_hot_loop            = BaseGemmPipeline::BlockHasHotloop(num_loop);
         const ck_tile::TailNumber tail_num = BaseGemmPipeline::GetBlockLoopTailNum(num_loop);
 
+        std::cout << "has hot loop " << has_hot_loop << std::endl;
+        std::cout << "num loop " << num_loop << std::endl;
+        std::cout << "tail_num " << static_cast<int32_t>(tail_num) - 1 << std::endl;
+
         const auto Run = [&](const auto has_hot_loop_, const auto tail_number_) {
             constexpr bool has_hot_loop_v = has_hot_loop_.value;
             constexpr auto tail_number_v  = tail_number_.value;
@@ -105,7 +109,7 @@ class TestCkTileGemmMemPipeline : public ::testing::Test
             const dim3 grids      = Kernel::GridSize(args.M, args.N, args.kbatch);
             constexpr dim3 blocks = Kernel::BlockSize();
 
-            if(s.log_level_ > 0)
+            if(true)
             {
                 std::cout << "Lunching kernel with args:"
                           << " grid: {" << grids.x << ", " << grids.y << ", " << grids.z << "}"
@@ -119,14 +123,17 @@ class TestCkTileGemmMemPipeline : public ::testing::Test
 
         if(has_hot_loop)
         {
+            std::cout << "has hot loop xx\n";
             // Tail pipeline One to Seven
             if(tail_num == ck_tile::TailNumber::One)
             {
+                std::cout << "tail num one\n";
                 Run(ck_tile::bool_constant<true>{},
                     ck_tile::integral_constant<ck_tile::TailNumber, ck_tile::TailNumber::One>{});
             }
             else if(tail_num == ck_tile::TailNumber::Full)
             {
+                std::cout << "tail num full\n";
                 Run(ck_tile::bool_constant<true>{},
                     ck_tile::integral_constant<ck_tile::TailNumber, ck_tile::TailNumber::Full>{});
             }
@@ -191,6 +198,7 @@ class TestCkTileGemmMemPipeline : public ::testing::Test
             // Tail number always 1
             if(tail_num == ck_tile::TailNumber::One)
             {
+                std::cout << "nohotloop tail num one xx\n";
                 Run(ck_tile::bool_constant<false>{},
                     ck_tile::integral_constant<ck_tile::TailNumber, ck_tile::TailNumber::One>{});
             }
@@ -267,8 +275,10 @@ class TestCkTileGemmMemPipeline : public ::testing::Test
         ck_tile::HostTensor<CDataType> c_m_n_dev_result(
             f_host_tensor_descriptor(M, N, stride_C, CLayout{}));
 
-        ck_tile::FillUniformDistributionIntegerValue<ADataType>{-5, 5}(a_m_k);
-        ck_tile::FillUniformDistributionIntegerValue<BDataType>{-5, 5}(b_k_n);
+        ck_tile::FillMonotonicSeq<ADataType>{0, 0.01}(a_m_k);
+        ck_tile::FillMonotonicSeq<BDataType>{0, 0.01}(b_k_n);
+        //ck_tile::FillUniformDistributionIntegerValue<ADataType>{-5, 5}(a_m_k);
+        //ck_tile::FillUniformDistributionIntegerValue<BDataType>{-5, 5}(b_k_n);
 
         ck_tile::DeviceMem a_m_k_dev_buf(a_m_k.get_element_space_size_in_bytes());
         ck_tile::DeviceMem b_k_n_dev_buf(b_k_n.get_element_space_size_in_bytes());
@@ -290,6 +300,11 @@ class TestCkTileGemmMemPipeline : public ::testing::Test
         args.stride_A = stride_A;
         args.stride_B = stride_B;
         args.stride_C = stride_C;
+
+        std::cout << "kbatch " << kbatch << std::endl;
+        std::cout << "stride A " << stride_A << std::endl;
+        std::cout << "stride B " << stride_B << std::endl;
+        std::cout << "stride C " << stride_C << std::endl;
 
         invoke_gemm(args, ck_tile::stream_config{nullptr, false});
 

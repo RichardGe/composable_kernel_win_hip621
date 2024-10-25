@@ -166,7 +166,7 @@
 #endif
 
 #ifndef CK_TILE_DEBUG_LOG
-#define CK_TILE_DEBUG_LOG 0
+#define CK_TILE_DEBUG_LOG 1
 #endif
 
 #ifndef __HIP_DEVICE_COMPILE__ // for host code

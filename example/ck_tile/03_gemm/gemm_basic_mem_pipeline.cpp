@@ -57,8 +57,13 @@ float gemm_calc(const gemm_basic_args& args, const ck_tile::stream_config& s)
     const bool has_hot_loop            = BaseGemmPipeline::BlockHasHotloop(num_loop);
     const ck_tile::TailNumber tail_num = BaseGemmPipeline::GetBlockLoopTailNum(num_loop);
 
-    float ave_time{0};
+    printf("PrefetchStages: %d\n", BaseGemmPipeline::PrefetchStages);
+    printf("num_loop: %d\n", num_loop);
+    printf("has_hot_loop: %d\n", has_hot_loop);
+    printf("tail_num: %d\n", static_cast<int>(tail_num));
 
+    float ave_time{0};
+    
     const auto Run = [&](const auto has_hot_loop_, const auto tail_number_) {
         constexpr bool has_hot_loop_v = has_hot_loop_.value;
         constexpr auto tail_number_v  = tail_number_.value;
@@ -86,7 +91,7 @@ float gemm_calc(const gemm_basic_args& args, const ck_tile::stream_config& s)
         const dim3 grids      = Kernel::GridSize(args.M, args.N, args.kbatch);
         constexpr dim3 blocks = Kernel::BlockSize();
 
-        if(s.log_level_ > 0)
+        if(true)
         {
             std::cout << "Lunching kernel with args:"
                       << " grid: {" << grids.x << ", " << grids.y << ", " << grids.z << "}"
@@ -169,7 +174,7 @@ float gemm_calc(const gemm_basic_args& args, const ck_tile::stream_config& s)
         {
             Run(ck_tile::bool_constant<false>{},
                 ck_tile::integral_constant<ck_tile::TailNumber, ck_tile::TailNumber::One>{});
-        }
+        } // what if not?
     }
 
     return ave_time;
