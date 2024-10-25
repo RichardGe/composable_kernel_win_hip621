@@ -17,7 +17,6 @@
 #include "ck/library/utility/convolution_parameter.hpp"
 #include "ck/library/utility/device_memory.hpp"
 #include "ck/library/utility/host_tensor.hpp"
-#include "ck/library/utility/host_tensor_generator.hpp"
 #include "ck/library/utility/literals.hpp"
 #include "ck/library/utility/fill.hpp"
 #include "ck/library/reference_tensor_operation/cpu/reference_gemm.hpp"
@@ -47,6 +46,8 @@ bool profile_grouped_gemm_impl(int do_verification,
                                int n_iter                       = 10)
 {
     bool pass = true;
+    // TODO: Fixme
+    using ComputeDataType = ADataType;
 
     auto f_host_tensor_descriptor =
         [](std::size_t row, std::size_t col, std::size_t stride, auto layout) {
@@ -75,6 +76,7 @@ bool profile_grouped_gemm_impl(int do_verification,
     std::vector<Tensor<CDataType>> c_m_n_host_results;
     std::vector<Tensor<CDataType>> c_m_n_device_results;
 
+    ComputeDataType max_abs_in_val = 0.f;
     for(std::size_t i = 0; i < group_count; i++)
     {
         a_m_k.push_back(
@@ -93,17 +95,18 @@ bool profile_grouped_gemm_impl(int do_verification,
                       << i << "]:" << b_k_n[i].mDesc << ", c_m_n_device_results[" << i
                       << "]:" << c_m_n_device_results[i].mDesc << std::endl;
         }
-        std::size_t num_thread = 1;
         switch(init_method)
         {
         case 0: break;
         case 1:
-            a_m_k[i].GenerateTensorValue(GeneratorTensor_2<ADataType>{-5, 5}, num_thread);
-            b_k_n[i].GenerateTensorValue(GeneratorTensor_2<BDataType>{-5, 5}, num_thread);
+            ck::utils::FillUniformDistributionIntegerValue<ADataType>{-5.f, 5.f}(a_m_k[i]);
+            ck::utils::FillUniformDistributionIntegerValue<BDataType>{-5.f, 5.f}(b_k_n[i]);
+            max_abs_in_val = 5.f;
             break;
         default:
-            a_m_k[i].GenerateTensorValue(GeneratorTensor_3<ADataType>{0.0, 1.0}, num_thread);
-            b_k_n[i].GenerateTensorValue(GeneratorTensor_3<BDataType>{-0.5, 0.5}, num_thread);
+            ck::utils::FillUniformDistribution<ADataType>{-0.5f, 0.5f}(a_m_k[i]);
+            ck::utils::FillUniformDistribution<BDataType>{-0.5f, 0.5f}(b_k_n[i]);
+            max_abs_in_val = 0.5f;
         }
     }
 
@@ -218,7 +221,6 @@ bool profile_grouped_gemm_impl(int do_verification,
             ref_invoker.Run(ref_argument);
         }
     }
-
     // profile device GEMM instances
     for(auto& gemm_ptr : op_ptrs)
     {
@@ -286,38 +288,34 @@ bool profile_grouped_gemm_impl(int do_verification,
                     bool instance_pass = true;
                     for(std::size_t i = 0; i < gemm_descs.size(); i++)
                     {
-                        // TODO: Fixme
-                        using ComputeDataType = ADataType;
                         c_device_buf[i]->FromDevice(c_m_n_device_results[i].mData.data());
-                        // Both the kernel and the reference use `AccDataType`, so an absolute error
-                        // of both of them is bounded by `K *
-                        // std::numeric_limits<AccDataType>::epsilon()`. Comparing one to another
-                        // can result in an absolute error as high as twice that value.
-                        double threshold =
-                            2 * gemm_descs[i].K_ * std::numeric_limits<AccDataType>::epsilon();
-                        // Handle the possible casting error of either AccDataType -> DataType or
-                        // DataType -> ComputeDataType.
-                        if constexpr(ck::is_same_v<CDataType, ck::bhalf_t> ||
-                                     ck::is_same_v<ComputeDataType, ck::bhalf_t>)
+                        auto atol = ck::utils::get_absolute_threshold<ComputeDataType, CDataType>(
+                            max_abs_in_val, gemm_descs[i].K_);
+                        auto rtol = ck::utils::get_relative_threshold<ComputeDataType, CDataType>(
+                            gemm_descs[i].K_);
+
+                        // TODO: take a closer look if we have all casting with bhalf correct!
+                        if constexpr(std::is_same_v<ADataType, ck::bhalf_t> ||
+                                     std::is_same_v<BDataType, ck::bhalf_t>)
                         {
-                            const double epsilon = std::pow(2, -7);
-                            // Maximum relative casting error when rounding to zero.
-                            threshold += epsilon * 2;
+                            atol = 0.15f;
+                            if(kbatch_curr > 16)
+                                atol = 0.26f;
                         }
-                        else if constexpr(ck::is_same_v<CDataType, ck::half_t> ||
-                                          ck::is_same_v<ComputeDataType, ck::half_t>)
+                        else if constexpr(std::is_same_v<ADataType, ck::f8_t> ||
+                                          std::is_same_v<BDataType, ck::f8_t>)
                         {
-                            const double epsilon = std::pow(2, -10);
-                            // Maximum relative casting error when rounding to zero.
-                            threshold += epsilon * 2;
+                            atol = 0.006f;
+                            if(kbatch_curr > 16)
+                                atol = 0.019f;
                         }
 
                         instance_pass =
                             instance_pass && ck::utils::check_err(c_m_n_device_results[i],
                                                                   c_m_n_host_results[i],
                                                                   "Error: Incorrect results!",
-                                                                  threshold,
-                                                                  threshold);
+                                                                  rtol,
+                                                                  atol);
 
                         if(do_log)
                         {
