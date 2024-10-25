@@ -360,7 +360,8 @@ struct DeviceGemmMultiD_BScale_Xdl_CShuffle_V3
             return false;
         }
 
-        if(ScaleBlockN % NPerBlock != 0 || ScaleBlockK != KPerBlock)
+        // if(ScaleBlockN % NPerBlock != 0 || ScaleBlockK != KPerBlock)
+        if(ScaleBlockK != KPerBlock)
         {
             printf("Return 1\n");
             return false;

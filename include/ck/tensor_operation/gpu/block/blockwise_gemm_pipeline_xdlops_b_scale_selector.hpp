@@ -39,7 +39,6 @@ template <BlockGemmPipelineVersion BlkGemmPipelineVer,
           index_t KPack>
 constexpr auto BlockGemmBScalePipeline_Selector()
 {
-    printf("I'm Here\n");
     return BlockwiseGemmXdlops_pipeline_v3_b_scale<BlkGemmPipeSche,
                                                    BlockSize,
                                                    ADataType,

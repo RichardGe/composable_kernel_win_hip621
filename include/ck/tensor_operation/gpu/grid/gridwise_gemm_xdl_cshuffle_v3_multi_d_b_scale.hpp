@@ -1359,15 +1359,15 @@ struct GridwiseGemmMultiD_BScale_xdl_cshuffle_v3
             (a_grid_desc_ak0_m_ak1.GetLength(I0) * a_grid_desc_ak0_m_ak1.GetLength(I2)) /
             KPerBlock);
 
-        const index_t ScaleSliceSizeM = 1;
-        const index_t ScaleSliceSizeN = 1;
+        //const index_t ScaleSliceSizeM = 1;
+        const index_t ScaleSliceSizeN = NXdlPerWave;
         const index_t ScaleSliceSizeK = 1;
 
         // constexpr auto a_scale_thread_desc = make_naive_tensor_descriptor_packed(
         //     make_tuple(Number<ScaleSliceSizeM>{}, Number<ScaleSliceSizeK>{}));
 
         constexpr auto b_scale_thread_desc = make_naive_tensor_descriptor_packed(
-            make_tuple(Number<ScaleSliceSizeM>{}, Number<ScaleSliceSizeK>{}));
+            make_tuple(Number<ScaleSliceSizeN>{}, Number<ScaleSliceSizeK>{}));
 
         // auto a_scale_thread_copy =
         //     ThreadwiseTensorSliceTransfer_v2<AScaleType,

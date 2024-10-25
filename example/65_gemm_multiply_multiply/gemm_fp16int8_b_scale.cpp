@@ -61,7 +61,7 @@ using CDEElementOp = PassThrough;
 static constexpr auto GemmSpec = ck::tensor_operation::device::GemmSpecialization::Default;
 
 // static constexpr ck::index_t Scale_Block_M = 128;
-static constexpr ck::index_t Scale_Block_N = 128;
+static constexpr ck::index_t Scale_Block_N = 1;
 static constexpr ck::index_t Scale_Block_K = 128;
 
 using DeviceOpInstance = ck::tensor_operation::device::DeviceGemmMultiD_BScale_Xdl_CShuffle_V3
@@ -217,7 +217,8 @@ int main(int argc, char* argv[])
         a0_m_k.GenerateTensorValue(GeneratorTensor_1<A0DataType>{});
         quant_b0_k_n.GenerateTensorValue(GeneratorTensor_1<QuantDataType>{});
         // a1_m_k.GenerateTensorValue(GeneratorTensor_1<A1DataType>{});
-        b1_k_n.GenerateTensorValue(GeneratorTensor_1<B1DataType>{});
+        // b1_k_n.GenerateTensorValue(GeneratorTensor_1<B1DataType>{});
+        b1_k_n.GenerateTensorValue(GeneratorTensor_3<B1DataType>{0, 1.0});
         break;
     case 3:
         a0_m_k.GenerateTensorValue(GeneratorTensor_2<A0DataType>{-2, 2});

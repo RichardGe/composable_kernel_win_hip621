@@ -440,7 +440,7 @@ struct BlockwiseGemmXdlops_pipeline_v3_b_scale<BlockGemmPipelineScheduler::Intra
                             c_thread_buf(Number<c_offset>{}) +=
                                 c_thread_buf_per_scale[Number<t>{}] *
                                 // type_convert<AccDataType>(a_scale_thread_buf[I0]) *
-                                type_convert<AccDataType>(b_scale_thread_buf[I0]);
+                                type_convert<AccDataType>(b_scale_thread_buf[n0]);
                         });
                     });
                 });
