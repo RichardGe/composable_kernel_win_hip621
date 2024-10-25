@@ -187,50 +187,50 @@ int profile_grouped_gemm(int argc, char* argv[])
                                                                                    n_warmup,
                                                                                    n_iter);
     }
-    // else if(data_type == GemmDataType::F8_F16_F16 && layout == GemmMatrixLayout::MK_KN_MN)
-    // {
-    //     ck::profiler::profile_grouped_gemm_impl<ck::f8_t,
-    //                                             ck::half_t,
-    //                                             ck::half_t,
-    //                                             float,
-    //                                             ck::tensor_layout::gemm::RowMajor,
-    //                                             ck::tensor_layout::gemm::RowMajor,
-    //                                             ck::tensor_layout::gemm::RowMajor>(do_verification,
-    //                                                                                init_method,
-    //                                                                                do_log,
-    //                                                                                time_kernel,
-    //                                                                                Ms,
-    //                                                                                Ns,
-    //                                                                                Ks,
-    //                                                                                StrideAs,
-    //                                                                                StrideBs,
-    //                                                                                StrideCs,
-    //                                                                                kbatches,
-    //                                                                                n_warmup,
-    //                                                                                n_iter);
-    // }
-    // else if(data_type == GemmDataType::F16_F8_F16 && layout == GemmMatrixLayout::MK_KN_MN)
-    // {
-    //     ck::profiler::profile_grouped_gemm_impl<ck::half_t,
-    //                                             ck::f8_t,
-    //                                             ck::half_t,
-    //                                             float,
-    //                                             ck::tensor_layout::gemm::RowMajor,
-    //                                             ck::tensor_layout::gemm::RowMajor,
-    //                                             ck::tensor_layout::gemm::RowMajor>(do_verification,
-    //                                                                                init_method,
-    //                                                                                do_log,
-    //                                                                                time_kernel,
-    //                                                                                Ms,
-    //                                                                                Ns,
-    //                                                                                Ks,
-    //                                                                                StrideAs,
-    //                                                                                StrideBs,
-    //                                                                                StrideCs,
-    //                                                                                kbatches,
-    //                                                                                n_warmup,
-    //                                                                                n_iter);
-    // }
+    else if(data_type == GemmDataType::F8_F16_F16 && layout == GemmMatrixLayout::MK_KN_MN)
+    {
+        ck::profiler::profile_grouped_gemm_impl<ck::f8_t,
+                                                ck::half_t,
+                                                ck::half_t,
+                                                float,
+                                                ck::tensor_layout::gemm::RowMajor,
+                                                ck::tensor_layout::gemm::RowMajor,
+                                                ck::tensor_layout::gemm::RowMajor>(do_verification,
+                                                                                   init_method,
+                                                                                   do_log,
+                                                                                   time_kernel,
+                                                                                   Ms,
+                                                                                   Ns,
+                                                                                   Ks,
+                                                                                   StrideAs,
+                                                                                   StrideBs,
+                                                                                   StrideCs,
+                                                                                   kbatches,
+                                                                                   n_warmup,
+                                                                                   n_iter);
+    }
+    else if(data_type == GemmDataType::F16_F8_F16 && layout == GemmMatrixLayout::MK_KN_MN)
+    {
+        ck::profiler::profile_grouped_gemm_impl<ck::half_t,
+                                                ck::f8_t,
+                                                ck::half_t,
+                                                float,
+                                                ck::tensor_layout::gemm::RowMajor,
+                                                ck::tensor_layout::gemm::RowMajor,
+                                                ck::tensor_layout::gemm::RowMajor>(do_verification,
+                                                                                   init_method,
+                                                                                   do_log,
+                                                                                   time_kernel,
+                                                                                   Ms,
+                                                                                   Ns,
+                                                                                   Ks,
+                                                                                   StrideAs,
+                                                                                   StrideBs,
+                                                                                   StrideCs,
+                                                                                   kbatches,
+                                                                                   n_warmup,
+                                                                                   n_iter);
+    }
     else if(data_type == GemmDataType::BF16_BF16_BF16 && layout == GemmMatrixLayout::MK_KN_MN)
     {
         ck::profiler::profile_grouped_gemm_impl<ck::bhalf_t,
