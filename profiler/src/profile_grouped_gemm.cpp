@@ -66,7 +66,7 @@ int profile_grouped_gemm(int argc, char* argv[])
             << "arg7: time kernel (0=n0, 1=yes)\n"
             << "arg8 to 13: Ms, Ns, Ks, StrideAs, StrideBs, StrideCs (e.g., 256,256 128,128 64,64 "
                "64,64 64,64 128,128)\n"
-            << "arg15: kbatch value (default 1)\n"
+            << "arg15: kbatch values (default 1)\n"
             << "optional:\n"
             << "arg16: number of warm-up cycles (default 1)\n"
             << "arg17: number of iterations (default 10)\n"
@@ -89,7 +89,7 @@ int profile_grouped_gemm(int argc, char* argv[])
     const auto StrideAs = argToIntArray(argv[11]);
     const auto StrideBs = argToIntArray(argv[12]);
     const auto StrideCs = argToIntArray(argv[13]);
-    const int kbatch    = argc >= 15 ? std::stoi(argv[14]) : 1;
+    const auto kbatches = argc >= 15 ? argToIntArray(argv[14]) : {1};
 
     int n_warmup = 1;
     int n_iter   = 10;
@@ -117,7 +117,7 @@ int profile_grouped_gemm(int argc, char* argv[])
                                                                                    StrideAs,
                                                                                    StrideBs,
                                                                                    StrideCs,
-                                                                                   kbatch,
+                                                                                   kbatches,
                                                                                    n_warmup,
                                                                                    n_iter);
     }
@@ -139,7 +139,7 @@ int profile_grouped_gemm(int argc, char* argv[])
                                                                                    StrideAs,
                                                                                    StrideBs,
                                                                                    StrideCs,
-                                                                                   kbatch,
+                                                                                   kbatches,
                                                                                    n_warmup,
                                                                                    n_iter);
     }
@@ -161,7 +161,7 @@ int profile_grouped_gemm(int argc, char* argv[])
                                                                                    StrideAs,
                                                                                    StrideBs,
                                                                                    StrideCs,
-                                                                                   kbatch,
+                                                                                   kbatches,
                                                                                    n_warmup,
                                                                                    n_iter);
     }
@@ -183,7 +183,7 @@ int profile_grouped_gemm(int argc, char* argv[])
                                                                                    StrideAs,
                                                                                    StrideBs,
                                                                                    StrideCs,
-                                                                                   kbatch,
+                                                                                   kbatches,
                                                                                    n_warmup,
                                                                                    n_iter);
     }
@@ -205,7 +205,7 @@ int profile_grouped_gemm(int argc, char* argv[])
     //                                                                                StrideAs,
     //                                                                                StrideBs,
     //                                                                                StrideCs,
-    //                                                                                kbatch,
+    //                                                                                kbatches,
     //                                                                                n_warmup,
     //                                                                                n_iter);
     // }
@@ -227,7 +227,7 @@ int profile_grouped_gemm(int argc, char* argv[])
     //                                                                                StrideAs,
     //                                                                                StrideBs,
     //                                                                                StrideCs,
-    //                                                                                kbatch,
+    //                                                                                kbatches,
     //                                                                                n_warmup,
     //                                                                                n_iter);
     // }
@@ -249,7 +249,7 @@ int profile_grouped_gemm(int argc, char* argv[])
                                                                                    StrideAs,
                                                                                    StrideBs,
                                                                                    StrideCs,
-                                                                                   kbatch,
+                                                                                   kbatches,
                                                                                    n_warmup,
                                                                                    n_iter);
     }
@@ -271,7 +271,7 @@ int profile_grouped_gemm(int argc, char* argv[])
                                                                                    StrideAs,
                                                                                    StrideBs,
                                                                                    StrideCs,
-                                                                                   kbatch,
+                                                                                   kbatches,
                                                                                    n_warmup,
                                                                                    n_iter);
     }
@@ -293,7 +293,7 @@ int profile_grouped_gemm(int argc, char* argv[])
                                                                                    StrideAs,
                                                                                    StrideBs,
                                                                                    StrideCs,
-                                                                                   kbatch,
+                                                                                   kbatches,
                                                                                    n_warmup,
                                                                                    n_iter);
     }

@@ -42,9 +42,9 @@ bool profile_grouped_gemm_impl(int do_verification,
                                const std::vector<int>& StrideAs,
                                const std::vector<int>& StrideBs,
                                const std::vector<int>& StrideCs,
-                               int kbatch   = 1,
-                               int n_warmup = 1,
-                               int n_iter   = 10)
+                               const std::vector<int>& kbatches = {1},
+                               int n_warmup                     = 1,
+                               int n_iter                       = 10)
 {
     bool pass = true;
 
@@ -256,10 +256,11 @@ bool profile_grouped_gemm_impl(int do_verification,
 
         std::vector<int> kbatch_list = {1, 2, 4, 8, 12, 16, 20, 24, 32, 48, 64};
 
-        // If the user will provide kbatch = 0, then we test predefined set of kbatch values.
-        if(kbatch > 0)
+        // If the user will provide not empty kbatches list, then we test predefined set of kbatch
+        // values.
+        if(!kbatches.empty())
         {
-            kbatch_list = {kbatch};
+            kbatch_list = kbatches;
         }
 
         for(std::size_t j = 0; j < kbatch_list.size(); j++)
