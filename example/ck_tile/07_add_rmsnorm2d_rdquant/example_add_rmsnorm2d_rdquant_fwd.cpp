@@ -4,6 +4,32 @@
 #include "ck_tile/ops/add_rmsnorm2d_rdquant.hpp"
 #include <cstring>
 
+// different threshold for different dtype
+template <typename DataType>
+auto get_elimit()
+{
+    double rtol = 1e-2;
+    double atol = 1e-2;
+    return ck_tile::make_tuple(rtol, atol);
+}
+
+template <>
+auto get_elimit<ck_tile::bf16_t>()
+{
+    double rtol = 1e-2;
+    double atol = 1e-2;
+    return ck_tile::make_tuple(rtol, atol);
+}
+
+template <>
+auto get_elimit<ck_tile::int8_t>()
+{
+    // due to rounding, int8 quantization might have 1 abs error
+    double rtol = 1;
+    double atol = 1;
+    return ck_tile::make_tuple(rtol, atol);
+}
+
 auto create_args(int argc, char* argv[])
 {
     ck_tile::ArgParser arg_parser;
@@ -41,12 +67,12 @@ bool run(const ck_tile::ArgParser& arg_parser)
     using GammaDataType   = DataType;
     using XDataType       = DataType;
     using YScaleDataType  = DataType;
-    using QYDataType      = int8_t;
+    using QYDataType      = ck_tile::int8_t;
     using ComputeDataType = float;
 
     // host verify
-    ck_tile::HostTensor<XDataType> a_host({m, n}, {stride, 1});
-    ck_tile::HostTensor<XDataType> b_host({m, n}, {stride, 1});
+    ck_tile::HostTensor<ADataType> a_host({m, n}, {stride, 1});
+    ck_tile::HostTensor<BDataType> b_host({m, n}, {stride, 1});
     ck_tile::HostTensor<GammaDataType> gamma_host({n});
 
     ck_tile::HostTensor<XDataType> x_host_ref({m, n}, {stride, 1});
@@ -121,41 +147,95 @@ bool run(const ck_tile::ArgParser& arg_parser)
 
     if(do_validation)
     {
+        using YDataType      = ComputeDataType;
         using InvRmsDataType = DataType;
-        ck_tile::HostTensor<InvRmsDataType> invRms_host_ref({m});
 
-        // ck_tile::reference_rmsnorm2d_fwd<XDataType,
-        //                                  GammaDataType,
-        //                                  ComputeDataType,
-        //                                  QYDataType,
-        //                                  InvRmsDataType>(
-        //     x_host, gamma_host, qy_host_ref, invRms_host_ref, epsilon);
+        // Add
+        {
+            auto op = [](const auto& v0, const auto& v1) { return v0 + v1; };
+            ck_tile::reference_binary_elementwise<ADataType, BDataType, XDataType, ComputeDataType>(
+                a_host, b_host, x_host_ref, op);
 
-        // qy_buf.FromDevice(qy_host_dev.data());
+            x_buf.FromDevice(x_host_dev.data());
 
-        // auto [rtol, atol] = ck_tile::make_tuple(1e-3, 1e-3);
-        // if(stride == n)
-        // {
-        //     pass = ck_tile::check_err(
-        //         qy_host_dev, qy_host_ref, std::string("OUT Error: Incorrect results!"), rtol,
-        //         atol);
-        // }
-        // else
-        // {
-        //     for(int i_r = 0; i_r < m; i_r++)
-        //     {
-        //         std::vector<QYDataType> qy_host_dev_row(qy_host_dev.begin() + i_r * stride,
-        //                                               qy_host_dev.begin() + i_r * stride + n);
-        //         std::vector<QYDataType> qy_host_ref_row(qy_host_ref.begin() + i_r * stride,
-        //                                               qy_host_ref.begin() + i_r * stride + n);
-        //         pass &= ck_tile::check_err(qy_host_dev_row,
-        //                                    qy_host_ref_row,
-        //                                    std::string("OUT[") + std::to_string(i_r) +
-        //                                        std::string("] Error: Incorrect results!"),
-        //                                    rtol,
-        //                                    atol);
-        //     }
-        // }
+            auto [rtol, atol] = get_elimit<XDataType>();
+            pass              = ck_tile::check_err(
+                x_host_dev, x_host_ref, std::string("x Error: Incorrect results!"), rtol, atol);
+        }
+
+        ck_tile::HostTensor<YDataType> y_host({m, n});
+        // RmsNorm2d
+        {
+            ck_tile::HostTensor<InvRmsDataType> invRms_host_ref({m});
+
+            // CAUSION: kernel use ComputeDataType version of x, but we use XDataType here for
+            // simplicity
+            ck_tile::reference_rmsnorm2d_fwd<XDataType,
+                                             GammaDataType,
+                                             ComputeDataType,
+                                             YDataType,
+                                             InvRmsDataType>(
+                x_host_ref, gamma_host, y_host, invRms_host_ref, epsilon);
+        }
+
+        // yscale
+        {
+            ck_tile::HostTensor<YDataType> y_rowwise_amax_host({m});
+
+            using ReduceAmax = ck_tile::ReduceOp::AbsMax;
+            ck_tile::reference_reduce<YDataType, ComputeDataType, YDataType>(
+                y_host, y_rowwise_amax_host, ReduceAmax{});
+
+            auto op = [](const auto& v0) {
+                return v0 /
+                       ck_tile::type_convert<ComputeDataType>(ck_tile::numeric<QYDataType>::max());
+            };
+            ck_tile::reference_unary_elementwise<YDataType, YScaleDataType, ComputeDataType>(
+                y_rowwise_amax_host, yscale_host_ref, op);
+
+            yscale_buf.FromDevice(yscale_host_dev.mData.data());
+
+            auto [rtol, atol] = get_elimit<YScaleDataType>();
+            pass &= ck_tile::check_err(yscale_host_dev,
+                                       yscale_host_ref,
+                                       std::string("yscale Error: Incorrect results!"),
+                                       rtol,
+                                       atol);
+        }
+
+        // rowwise quantization
+        {
+            ck_tile::reference_rowwise_quantization2d<YDataType, YScaleDataType, QYDataType>(
+                y_host, yscale_host_ref, qy_host_ref);
+
+            qy_buf.FromDevice(qy_host_dev.data());
+            auto [rtol, atol] = get_elimit<QYDataType>();
+
+            if(stride == n)
+            {
+                pass = ck_tile::check_err(qy_host_dev,
+                                          qy_host_ref,
+                                          std::string("qy Error: Incorrect results!"),
+                                          rtol,
+                                          atol);
+            }
+            else
+            {
+                for(int i_r = 0; i_r < m; i_r++)
+                {
+                    std::vector<QYDataType> qy_host_dev_row(qy_host_dev.begin() + i_r * stride,
+                                                            qy_host_dev.begin() + i_r * stride + n);
+                    std::vector<QYDataType> qy_host_ref_row(qy_host_ref.begin() + i_r * stride,
+                                                            qy_host_ref.begin() + i_r * stride + n);
+                    pass &= ck_tile::check_err(qy_host_dev_row,
+                                               qy_host_ref_row,
+                                               std::string("qy[") + std::to_string(i_r) +
+                                                   std::string("] Error: Incorrect results!"),
+                                               rtol,
+                                               atol);
+                }
+            }
+        }
 
         std::cout << "[" << data_type << "]"
                   << " m:" << m << ", n:" << n << ", stride:" << stride
