@@ -63,8 +63,86 @@ struct AddRmsnorm2dRdquantFwdPipelineTwoPass
             make_tile_window(a_window_, Policy::template MakeABXBlockTileDistribution<Problem>());
         auto b_window =
             make_tile_window(b_window_, Policy::template MakeABXBlockTileDistribution<Problem>());
-        const auto gamma_window = make_tile_window(
+        auto gamma_window = make_tile_window(
             gamma_window_, Policy::template MakeGammaBlockTileDistribution<Problem>());
+
+        auto reduce_square_sum_func = [](const auto& v0, const auto& v1) { return v0 + v1 * v1; };
+        auto reduce_sum_func        = [](const auto& v0, const auto& v1) { return v0 + v1; };
+        auto reduce_absmax_func  = [](const auto& v0, const auto& v1) { return max(v0, abs(v1)); };
+        auto reduce_max_func     = [](const auto& v0, const auto& v1) { return max(v0, v1); };
+        auto block_reduce2d      = Policy::template GetBlockReduce2d<Problem>();
+        auto block_reduce2d_sync = Policy::template GetBlockReduce2dSync<Problem>();
+        auto block_reduce2d_cross_warp_sync =
+            Policy::template GetBlockReduce2dCrossWarpSync<Problem>();
+
+        static constexpr index_t Block_N = Problem::BlockShape::Block_N;
+        index_t num_n_tile_iteration =
+            __builtin_amdgcn_readfirstlane(integer_divide_ceil(row_size, Block_N));
+
+        using XTensorType = decltype(cast_tile<ComputeDataType>(load_tile(a_window)));
+        auto square_sum   = block_reduce2d.template MakeYBlockTile<XTensorType>();
+        set_tile(square_sum, 0);
+
+        for(int iN = __builtin_amdgcn_readfirstlane(0); iN < num_n_tile_iteration; ++iN)
+        {
+            const auto a = load_tile(a_window);
+            const auto b = load_tile(b_window);
+
+            auto x = tile_elementwise_in(
+                [&](const auto& a_, const auto& b_) {
+                    return type_convert<ComputeDataType>(a_) + type_convert<ComputeDataType>(b_);
+                },
+                a,
+                b);
+
+            if constexpr(kSaveX)
+                store_tile(x_window, cast_tile<XDataType>(x));
+
+            block_reduce2d(x, square_sum, reduce_square_sum_func);
+            move_tile_window(x_window, {0, Block_N});
+        }
+
+        block_reduce2d_sync(square_sum, reduce_sum_func);
+        block_reduce2d_cross_warp_sync(square_sum, smem, reduce_sum_func);
+
+        auto inv_rms = tile_elementwise_in(
+            [&](const auto& v_) {
+                return type_convert<ComputeDataType>(1.0f) / (sqrt(v_ / row_size + epsilon));
+            },
+            square_sum);
+
+        // reverse read x to reuse cache
+        ck_tile::index_t stride_to_right_most_window =
+            row_size % Block_N == 0 ? row_size - Block_N : row_size - row_size % Block_N;
+
+        move_tile_window(x_window, {0, -Block_N});
+        move_tile_window(gamma_window, {stride_to_right_most_window});
+        move_tile_window(y_window, {0, stride_to_right_most_window});
+
+        // rmsnorm computation + absmax + quantization
+        for(int iN = __builtin_amdgcn_readfirstlane(0); iN < num_n_tile_iteration; ++iN)
+        {
+            const auto x = load_tile(x_window);
+            const auto gamma = load_tile(gamma_window);
+
+            auto y = make_static_distributed_tensor<ComputeDataType>(x.get_tile_distribution());
+
+            sweep_tile(y, [&, inv_rms_ = inv_rms](auto idx) {
+                constexpr auto i_idx = make_tuple(idx[number<0>{}]);
+                constexpr auto j_idx = make_tuple(idx[number<1>{}]);
+
+                const auto gamma_ = type_convert<ComputeDataType>(gamma[j_idx]);
+
+                const auto x_ = type_convert<ComputeDataType>(x[idx]);
+                auto y_       = x_ * inv_rms_[i_idx] * gamma_;
+
+                y(idx) = type_convert<ComputeDataType>(y_);
+            });
+
+            move_tile_window(x_window, {0, -Block_N});
+            move_tile_window(gamma_window, {-Block_N});
+            move_tile_window(y_window, {0, -Block_N});
+        }
     }
 };
 } // namespace ck_tile

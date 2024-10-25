@@ -60,8 +60,8 @@ struct Rmsnorm2dFwdPipelineTwoPass
         index_t num_n_tile_iteration =
             __builtin_amdgcn_readfirstlane(integer_divide_ceil(row_size, Block_N));
 
-        auto reduce_square_sum_func = [](const auto& v0, const auto& v1) { return v0 + v1 * v1; };
-        auto reduce_sum_func        = [](const auto& v0, const auto& v1) { return v0 + v1; };
+        auto reduce_square_sum_func = ReduceOp::SquareAdd{};
+        auto reduce_sum_func        = ReduceOp::Add{};
         auto block_reduce2d         = Policy::template GetBlockReduce2d<Problem>();
         auto block_reduce2d_sync    = Policy::template GetBlockReduce2dSync<Problem>();
         auto block_reduce2d_cross_warp_sync =
@@ -69,7 +69,7 @@ struct Rmsnorm2dFwdPipelineTwoPass
 
         using XTensorType = decltype(load_tile(x_window));
         auto square_sum   = block_reduce2d.template MakeYBlockTile<XTensorType>();
-        set_tile(square_sum, 0);
+        set_tile(square_sum, reduce_square_sum_func.GetIdentityValue<ComputeDataType>());
 
         for(int iN = __builtin_amdgcn_readfirstlane(0); iN < num_n_tile_iteration; ++iN)
         {

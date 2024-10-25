@@ -38,13 +38,18 @@ struct Reduce2dShape
         warpSize * reduce_on_sequence(BlockWarps{}, multiplies{}, number<1>{});
 };
 
-template <typename XDataType_, typename ComputeDataType_, typename YDataType_, typename BlockShape_>
+template <typename XDataType_,
+          typename ComputeDataType_,
+          typename YDataType_,
+          typename BlockShape_,
+          typename ReduceOp_>
 struct Reduce2dProblem
 {
     using XDataType       = remove_cvref_t<XDataType_>;
     using ComputeDataType = remove_cvref_t<ComputeDataType_>;
     using YDataType       = remove_cvref_t<YDataType_>;
     using BlockShape      = remove_cvref_t<BlockShape_>;
+    using ReduceOp        = ReduceOp_;
 
     static constexpr bool kNeedCrossLaneSync = BlockShape::ThreadPerWarp_N > 1;
     static constexpr bool kNeedCrossWarpSync = BlockShape::WarpPerBlock_N > 1;
@@ -131,7 +136,7 @@ struct Reduce
         index_t num_n_tile_iteration =
             __builtin_amdgcn_readfirstlane(integer_divide_ceil(N, S::Block_N));
 
-        auto reduce_func         = [](const auto& v0, const auto& v1) { return v0 + v1; };
+        auto reduce_func         = typename Problem::ReduceOp{};
         auto block_reduce2d      = Policy::template GetBlockReduce2d<Problem>();
         auto block_reduce2d_sync = Policy::template GetBlockReduce2dSync<Problem>();
         auto block_reduce2d_cross_warp_sync =
@@ -139,7 +144,7 @@ struct Reduce
 
         using XTensorType = decltype(load_tile(x_window));
         auto y_compute    = block_reduce2d.template MakeYBlockTile<XTensorType>();
-        set_tile(y_compute, 0);
+        set_tile(y_compute, reduce_func.template GetIdentityValue<ComputeDataType>());
 
         for(int iN = __builtin_amdgcn_readfirstlane(0); iN < num_n_tile_iteration; ++iN)
         {

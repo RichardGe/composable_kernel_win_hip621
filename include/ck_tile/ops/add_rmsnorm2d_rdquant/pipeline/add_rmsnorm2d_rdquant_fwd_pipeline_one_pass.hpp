@@ -66,12 +66,12 @@ struct AddRmsnorm2dRdquantFwdPipelineOnePass
         const auto gamma_window = make_tile_window(
             gamma_window_, Policy::template MakeGammaBlockTileDistribution<Problem>());
 
-        auto reduce_square_sum_func = [](const auto& v0, const auto& v1) { return v0 + v1 * v1; };
-        auto reduce_sum_func        = [](const auto& v0, const auto& v1) { return v0 + v1; };
-        auto reduce_absmax_func  = [](const auto& v0, const auto& v1) { return max(v0, abs(v1)); };
-        auto reduce_max_func     = [](const auto& v0, const auto& v1) { return max(v0, v1); };
-        auto block_reduce2d      = Policy::template GetBlockReduce2d<Problem>();
-        auto block_reduce2d_sync = Policy::template GetBlockReduce2dSync<Problem>();
+        auto reduce_square_sum_func = ReduceOp::SquareAdd{};
+        auto reduce_sum_func        = ReduceOp::Add{};
+        auto reduce_absmax_func     = ReduceOp::AbsMax{};
+        auto reduce_max_func        = ReduceOp::Max{};
+        auto block_reduce2d         = Policy::template GetBlockReduce2d<Problem>();
+        auto block_reduce2d_sync    = Policy::template GetBlockReduce2dSync<Problem>();
         auto block_reduce2d_cross_warp_sync =
             Policy::template GetBlockReduce2dCrossWarpSync<Problem>();
 
@@ -90,7 +90,8 @@ struct AddRmsnorm2dRdquantFwdPipelineOnePass
             store_tile(x_window, cast_tile<XDataType>(x));
 
         // compute mean square, each-thread->cross-lane->cross-warp
-        auto square_sum = block_reduce2d(x, 0, reduce_square_sum_func);
+        auto square_sum = block_reduce2d(
+            x, reduce_square_sum_func.GetIdentityValue<ComputeDataType>(), reduce_square_sum_func);
         block_reduce2d_sync(square_sum, reduce_sum_func);
         block_reduce2d_cross_warp_sync(square_sum, smem, reduce_sum_func);
 
@@ -115,7 +116,8 @@ struct AddRmsnorm2dRdquantFwdPipelineOnePass
         });
 
         // compute absmax, each-thread->cross-lane->cross-warp
-        auto absmax = block_reduce2d(x, numeric<YScaleDataType>::min(), reduce_absmax_func);
+        auto absmax = block_reduce2d(
+            x, reduce_absmax_func.GetIdentityValue<ComputeDataType>(), reduce_absmax_func);
         block_reduce2d_sync(absmax, reduce_max_func);
         block_reduce2d_cross_warp_sync(absmax, smem, reduce_max_func);
 
@@ -130,7 +132,6 @@ struct AddRmsnorm2dRdquantFwdPipelineOnePass
         auto qy = make_static_distributed_tensor<QYDataType>(y.get_tile_distribution());
         sweep_tile(qy, [&, yscale_ = yscale](auto idx) {
             constexpr auto i_idx = make_tuple(idx[number<0>{}]);
-            constexpr auto j_idx = make_tuple(idx[number<1>{}]);
             auto qy_             = y[idx] / yscale_[i_idx];
             qy(idx)              = saturates<QYDataType>{}(qy_);
         });

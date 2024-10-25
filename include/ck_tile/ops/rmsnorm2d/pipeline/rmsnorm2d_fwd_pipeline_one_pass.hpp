@@ -55,8 +55,8 @@ struct Rmsnorm2dFwdPipelineOnePass
         const auto gamma_window = make_tile_window(
             gamma_window_, Policy::template MakeGammaBlockTileDistribution<Problem>());
 
-        auto reduce_square_sum_func = [](const auto& v0, const auto& v1) { return v0 + v1 * v1; };
-        auto reduce_sum_func        = [](const auto& v0, const auto& v1) { return v0 + v1; };
+        auto reduce_square_sum_func = ReduceOp::SquareAdd{};
+        auto reduce_sum_func        = ReduceOp::Add{};
         auto block_reduce2d         = Policy::template GetBlockReduce2d<Problem>();
         auto block_reduce2d_sync    = Policy::template GetBlockReduce2dSync<Problem>();
         auto block_reduce2d_cross_warp_sync =
@@ -67,7 +67,8 @@ struct Rmsnorm2dFwdPipelineOnePass
         const auto gamma = load_tile(gamma_window);
 
         // compute mean square each-thread->cross-lane->cross-warp
-        auto square_sum = block_reduce2d(x, 0, reduce_square_sum_func);
+        auto square_sum = block_reduce2d(
+            x, reduce_square_sum_func.GetIdentityValue<ComputeDataType>(), reduce_square_sum_func);
         block_reduce2d_sync(square_sum, reduce_sum_func);
         block_reduce2d_cross_warp_sync(square_sum, smem, reduce_sum_func);
 

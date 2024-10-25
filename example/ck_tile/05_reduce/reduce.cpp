@@ -40,6 +40,7 @@ bool run(const ck_tile::ArgParser& arg_parser)
 
     x_buf.ToDevice(x_host.data());
 
+    using ReduceOp   = ck_tile::ReduceOp::Add;
     using BlockWarps = ck_tile::sequence<4, 1>;
     using BlockTile  = ck_tile::sequence<128, 128>;
     using WarpTile   = ck_tile::sequence<32, 128>;
@@ -56,8 +57,9 @@ bool run(const ck_tile::ArgParser& arg_parser)
     ck_tile::index_t kGridSize             = (m / BlockTile::at(ck_tile::number<0>{}));
     std::cout << "grid size " << kGridSize << std::endl;
 
-    using Shape   = ck_tile::Reduce2dShape<BlockWarps, BlockTile, WarpTile, Vector>;
-    using Porblem = ck_tile::Reduce2dProblem<XDataType, ComputeDataType, YDataType, Shape>;
+    using Shape = ck_tile::Reduce2dShape<BlockWarps, BlockTile, WarpTile, Vector>;
+    using Porblem =
+        ck_tile::Reduce2dProblem<XDataType, ComputeDataType, YDataType, Shape, ReduceOp>;
 
     using Kernel = ck_tile::Reduce<Porblem>;
 
@@ -83,7 +85,8 @@ bool run(const ck_tile::ArgParser& arg_parser)
     if(do_validation)
     {
         // reference
-        ck_tile::reference_reduce<XDataType, ComputeDataType, YDataType>(x_host, y_host_ref);
+        ck_tile::reference_reduce<XDataType, ComputeDataType, YDataType>(
+            x_host, y_host_ref, ReduceOp{});
         y_buf.FromDevice(y_host_dev.mData.data());
         pass = ck_tile::check_err(y_host_dev, y_host_ref);
 
