@@ -55,6 +55,8 @@ struct TileFmhaShape
                                     // once (or repeately load Q as a whole tile)
     static_assert(kQKHeaddim % kK0 == 0, "kQKHeaddim should be divisible by kK0");
 
+    static constexpr index_t kSubQKHeaddim = ceil_to_qualified_tile_length(kQKHeaddim);
+
     // v, rowmajor : seqlen*hdim, colmajor : hdim*seqlen
     static constexpr bool IsVLayoutRowMajor = IsVLayoutRowMajor_;
     using VLayout                           = std::conditional_t<IsVLayoutRowMajor,

@@ -42,6 +42,7 @@ struct [[deprecated]] BlockFmhaPipelineQSKSVS
     static constexpr index_t kN1        = BlockFmhaShape::kN1;
     static constexpr index_t kK1        = BlockFmhaShape::kK1;
     static constexpr index_t kQKHeaddim = BlockFmhaShape::kQKHeaddim;
+    static constexpr index_t kSubQKHeaddim = BlockFmhaShape::kSubQKHeaddim;
 
     static constexpr bool kIsGroupMode = Problem::kIsGroupMode;
     static constexpr bool kPadSeqLenQ  = Problem::kPadSeqLenQ;

@@ -38,12 +38,13 @@ struct BlockFmhaPipelineQRKSVSAsync
 
     static constexpr index_t kBlockSize = Problem::kBlockSize;
 
-    static constexpr index_t kM0        = BlockFmhaShape::kM0;
-    static constexpr index_t kN0        = BlockFmhaShape::kN0;
-    static constexpr index_t kK0        = BlockFmhaShape::kK0;
-    static constexpr index_t kN1        = BlockFmhaShape::kN1;
-    static constexpr index_t kK1        = BlockFmhaShape::kK1;
-    static constexpr index_t kQKHeaddim = BlockFmhaShape::kQKHeaddim;
+    static constexpr index_t kM0           = BlockFmhaShape::kM0;
+    static constexpr index_t kN0           = BlockFmhaShape::kN0;
+    static constexpr index_t kK0           = BlockFmhaShape::kK0;
+    static constexpr index_t kN1           = BlockFmhaShape::kN1;
+    static constexpr index_t kK1           = BlockFmhaShape::kK1;
+    static constexpr index_t kQKHeaddim    = BlockFmhaShape::kQKHeaddim;
+    static constexpr index_t kSubQKHeaddim = BlockFmhaShape::kSubQKHeaddim;
 
     static constexpr bool kIsGroupMode = Problem::kIsGroupMode;
     // TODO: seq_q always support padding, hdim_q/v support multiple of vector(like 8x)

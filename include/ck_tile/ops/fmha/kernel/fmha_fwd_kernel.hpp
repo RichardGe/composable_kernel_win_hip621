@@ -657,7 +657,7 @@ struct FmhaFwdKernel
             {
                 return pad_tensor_view(
                     q_dram_naive,
-                    make_tuple(number<FmhaPipeline::kM0>{}, number<FmhaPipeline::kQKHeaddim>{}),
+                    make_tuple(number<FmhaPipeline::kM0>{}, number<FmhaPipeline::kSubQKHeaddim>{}),
                     sequence<kPadSeqLenQ, kPadHeadDimQ>{});
             }
             else
@@ -724,7 +724,7 @@ struct FmhaFwdKernel
             [&]() {
                 if constexpr(FmhaPipeline::kQLoadOnce)
                     return make_tuple(number<FmhaPipeline::kM0>{},
-                                      number<FmhaPipeline::kQKHeaddim>{});
+                                      number<FmhaPipeline::kSubQKHeaddim>{});
                 else
                     return make_tuple(number<FmhaPipeline::kM0>{}, number<FmhaPipeline::kK0>{});
             }(),

@@ -55,7 +55,7 @@ struct BlockFmhaPipelineQXCustomPolicy</* QLoadOnce = */ true>
         constexpr index_t MWarp = config.template at<1>();
 
         constexpr index_t kMPerBlock = Problem::BlockFmhaShape::kM0;
-        constexpr index_t kKPerBlock = Problem::BlockFmhaShape::kQKHeaddim;
+        constexpr index_t kKPerBlock = Problem::BlockFmhaShape::kSubQKHeaddim;
 
         constexpr index_t K2 = WG::kK / WG::WarpGemmAttribute::Impl::kABKLane;
         constexpr index_t K1 = WG::WarpGemmAttribute::Impl::kABKLane;
