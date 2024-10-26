@@ -272,8 +272,7 @@ int main(int argc, char* argv[])
     using CodegenPipelineProblem = ck_tile::
         GemmPipelineProblem<ADataType, BDataType, AccDataType, CodegenGemmShape, CodegenGemmTraits>;
 
-    using CodegenGemmPolicy = ck_tile::
-        GemmPipelineAGmemBGmemCRegV1DefaultPolicy;
+    using CodegenGemmPolicy = ck_tile::GemmPipelineAGmemBGmemCRegV1DefaultPolicy;
 
     using CodegenGemmPipeline =
         ck_tile::GemmPipelineAGmemBGmemCRegV1<CodegenPipelineProblem, CodegenGemmPolicy>;
@@ -294,12 +293,12 @@ int main(int argc, char* argv[])
     {
         // ToDo: Will Add the Element Op (bias) verification in the future.
         ck_tile::reference_gemm_cpu<ADataType,
-                                BDataType,
-                                AccDataType,
-                                CDataType,
-                                matrix_a_layout,
-                                matrix_b_layout,
-                                matrix_c_layout>(a_host, b_host, c_host_ref);
+                                    BDataType,
+                                    AccDataType,
+                                    CDataType,
+                                    matrix_a_layout,
+                                    matrix_b_layout,
+                                    matrix_c_layout>(a_host, b_host, c_host_ref);
 
         pass_cpu = ck_tile::check_err(c_host_dev, c_host_ref);
 

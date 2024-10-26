@@ -435,7 +435,7 @@ struct UniversalGemmPipelineAgBgCrPolicy
             constexpr index_t K0 = KPerBlock / K1;
             constexpr index_t N2 = get_warp_size() / K0;
             // coalesce reading for each blocks
-            if constexpr (get_warp_size() % (N2 * K0) == 0)
+            if constexpr(get_warp_size() % (N2 * K0) == 0)
             {
                 constexpr index_t N1 = BlockSize / get_warp_size();
                 static_assert(N2 != 0, "N2 is zero, which will lead to a division by zero error.");
@@ -444,11 +444,11 @@ struct UniversalGemmPipelineAgBgCrPolicy
 
                 return make_static_tile_distribution(
                     tile_distribution_encoding<sequence<1>,
-                                            tuple<sequence<N0, N1, N2>, sequence<K0, K1>>,
-                                            tuple<sequence<1>, sequence<1, 2>>,
-                                            tuple<sequence<1>, sequence<2, 0>>,
-                                            sequence<1, 2>,
-                                            sequence<0, 1>>{});
+                                               tuple<sequence<N0, N1, N2>, sequence<K0, K1>>,
+                                               tuple<sequence<1>, sequence<1, 2>>,
+                                               tuple<sequence<1>, sequence<2, 0>>,
+                                               sequence<1, 2>,
+                                               sequence<0, 1>>{});
             }
             // coalesce reading for each warps
             else
@@ -458,11 +458,11 @@ struct UniversalGemmPipelineAgBgCrPolicy
 
                 return make_static_tile_distribution(
                     tile_distribution_encoding<sequence<1>,
-                                            tuple<sequence<N0, N1, N2>, sequence<K0, K1>>,
-                                            tuple<sequence<1>, sequence<1, 2>>,
-                                            tuple<sequence<0>, sequence<2, 0>>,
-                                            sequence<1, 2>,
-                                            sequence<1, 1>>{});
+                                               tuple<sequence<N0, N1, N2>, sequence<K0, K1>>,
+                                               tuple<sequence<1>, sequence<1, 2>>,
+                                               tuple<sequence<0>, sequence<2, 0>>,
+                                               sequence<1, 2>,
+                                               sequence<1, 1>>{});
             }
         }
     }
@@ -498,14 +498,14 @@ struct UniversalGemmPipelineAgBgCrPolicy
                                                 Problem::BlockGemmShape::WarpTile::at(I1),
                                                 Problem::BlockGemmShape::WarpTile::at(I2),
                                                 TransposeC>;
-        using LayoutB = remove_cvref_t<typename Problem::LayoutB>;
+        using LayoutB  = remove_cvref_t<typename Problem::LayoutB>;
 
         static_assert(std::is_same_v<LayoutB, ck_tile::tensor_layout::gemm::RowMajor>);
         constexpr index_t BlockSize = Problem::kBlockSize;
         constexpr index_t NPerBlock = Problem::BlockGemmShape::kN;
         constexpr index_t KPerBlock = Problem::BlockGemmShape::kK;
 
-        constexpr index_t N1 = WarpGemm::kN;
+        constexpr index_t N1           = WarpGemm::kN;
         constexpr index_t N0           = NPerBlock / N1;
         constexpr index_t total_pixels = NPerBlock * KPerBlock / BlockSize;
         static_assert(total_pixels % N1 == 0);

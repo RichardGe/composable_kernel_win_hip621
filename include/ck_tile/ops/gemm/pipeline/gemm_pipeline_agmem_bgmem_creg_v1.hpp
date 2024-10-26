@@ -115,10 +115,8 @@ struct GemmPipelineAGmemBGmemCRegV1
                              Policy::template MakeBDramTileDistribution<Problem>());
 
         // B LDS tile window for store
-        auto b_copy_lds_window =
-            make_tile_window(b_lds_block,
-                             make_tuple(number<kNPerBlock>{}, number<kKPerBlock>{}),
-                             {0, 0});
+        auto b_copy_lds_window = make_tile_window(
+            b_lds_block, make_tuple(number<kNPerBlock>{}, number<kKPerBlock>{}), {0, 0});
 
         // A LDS tile for block GEMM
         auto a_lds_gemm_window = make_tile_window(

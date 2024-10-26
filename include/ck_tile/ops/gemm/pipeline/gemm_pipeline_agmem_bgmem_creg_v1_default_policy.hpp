@@ -13,7 +13,7 @@ namespace ck_tile {
 // Default policy class should not be templated, put template on member functions instead
 struct GemmPipelineAGmemBGmemCRegV1DefaultPolicy
 {
-    
+
 #if 0
     // 2d
     template <typename Problem>
@@ -244,7 +244,7 @@ struct GemmPipelineAGmemBGmemCRegV1DefaultPolicy
     CK_TILE_HOST_DEVICE static constexpr auto MakeBDramTileDistribution()
     {
         using BDataType = remove_cvref_t<typename Problem::BDataType>;
-        using LayoutB  = remove_cvref_t<typename Problem::LayoutB>;
+        using LayoutB   = remove_cvref_t<typename Problem::LayoutB>;
 
         constexpr index_t BlockSize = Problem::kBlockSize;
 
@@ -253,7 +253,7 @@ struct GemmPipelineAGmemBGmemCRegV1DefaultPolicy
 
         if constexpr(std::is_same_v<LayoutB, ck_tile::tensor_layout::gemm::RowMajor>)
         {
-            constexpr index_t N1 = MEM_VEC_SIZE / sizeof(BDataType);
+            constexpr index_t N1           = MEM_VEC_SIZE / sizeof(BDataType);
             constexpr index_t N0           = NPerBlock / N1;
             constexpr index_t total_pixels = NPerBlock * KPerBlock / BlockSize;
             static_assert(total_pixels % N1 == 0);
@@ -273,7 +273,9 @@ struct GemmPipelineAGmemBGmemCRegV1DefaultPolicy
                                                tuple<sequence<0>, sequence<1, 0, 2>>,
                                                sequence<2, 1>,
                                                sequence<3, 1>>{});
-            } else {
+            }
+            else
+            {
                 constexpr index_t K1   = (K2 * N0) / get_warp_size();
                 constexpr index_t K2_m = K2 / K1;
                 constexpr index_t K0   = BlockSize / get_warp_size() / K1;
@@ -286,13 +288,15 @@ struct GemmPipelineAGmemBGmemCRegV1DefaultPolicy
                                                sequence<2, 1>,
                                                sequence<3, 1>>{});
             }
-        } else {
+        }
+        else
+        {
 
             constexpr index_t K1 = MEM_VEC_SIZE / sizeof(BDataType);
             constexpr index_t K0 = KPerBlock / K1;
             constexpr index_t N2 = get_warp_size() / K0;
             // coalesce reading for each blocks
-            if constexpr (get_warp_size() % (N2 * K0) == 0)
+            if constexpr(get_warp_size() % (N2 * K0) == 0)
             {
                 constexpr index_t N1 = BlockSize / get_warp_size();
                 static_assert(N2 != 0, "N2 is zero, which will lead to a division by zero error.");
@@ -301,11 +305,11 @@ struct GemmPipelineAGmemBGmemCRegV1DefaultPolicy
 
                 return make_static_tile_distribution(
                     tile_distribution_encoding<sequence<1>,
-                                            tuple<sequence<N0, N1, N2>, sequence<K0, K1>>,
-                                            tuple<sequence<1>, sequence<1, 2>>,
-                                            tuple<sequence<1>, sequence<2, 0>>,
-                                            sequence<1, 2>,
-                                            sequence<0, 1>>{});
+                                               tuple<sequence<N0, N1, N2>, sequence<K0, K1>>,
+                                               tuple<sequence<1>, sequence<1, 2>>,
+                                               tuple<sequence<1>, sequence<2, 0>>,
+                                               sequence<1, 2>,
+                                               sequence<0, 1>>{});
             }
             // coalesce reading for each warps
             else
@@ -315,11 +319,11 @@ struct GemmPipelineAGmemBGmemCRegV1DefaultPolicy
 
                 return make_static_tile_distribution(
                     tile_distribution_encoding<sequence<1>,
-                                            tuple<sequence<N0, N1, N2>, sequence<K0, K1>>,
-                                            tuple<sequence<1>, sequence<1, 2>>,
-                                            tuple<sequence<0>, sequence<2, 0>>,
-                                            sequence<1, 2>,
-                                            sequence<1, 1>>{});
+                                               tuple<sequence<N0, N1, N2>, sequence<K0, K1>>,
+                                               tuple<sequence<1>, sequence<1, 2>>,
+                                               tuple<sequence<0>, sequence<2, 0>>,
+                                               sequence<1, 2>,
+                                               sequence<1, 1>>{});
             }
         }
     }
@@ -327,7 +331,7 @@ struct GemmPipelineAGmemBGmemCRegV1DefaultPolicy
     template <typename Problem>
     CK_TILE_HOST_DEVICE static constexpr auto MakeShuffledBRegBlockDescriptor()
     {
-        using LayoutB = remove_cvref_t<typename Problem::LayoutB>;
+        using LayoutB   = remove_cvref_t<typename Problem::LayoutB>;
         using BDataType = remove_cvref_t<typename Problem::BDataType>;
         static_assert(std::is_same_v<LayoutB, ck_tile::tensor_layout::gemm::RowMajor>);
         constexpr index_t kBlockSize = Problem::kBlockSize;
