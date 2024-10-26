@@ -11,7 +11,7 @@
 namespace ck_tile {
 
 template <typename Problem_, typename Policy_ = AddRmsnorm2dRdquantFwdPipelineDefaultPolicy>
-struct AddRmsnorm2dRdquantFwdPipelineTwoPass
+struct AddRmsnorm2dRdquantFwdPipelineThreePass
 {
     using Problem = ck_tile::remove_cvref_t<Problem_>;
     using Policy  = ck_tile::remove_cvref_t<Policy_>;

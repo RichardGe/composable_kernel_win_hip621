@@ -18,7 +18,7 @@ template <typename ADataType_,
           typename BlockShape_,
           bool kPadN_,
           bool kSaveX_,
-          bool kTwoPass_>
+          bool kThreePass_>
 struct AddRmsnorm2dRdquantFwdPipelineProblem
 {
     using ADataType       = remove_cvref_t<ADataType_>;
@@ -33,9 +33,9 @@ struct AddRmsnorm2dRdquantFwdPipelineProblem
     static constexpr bool kNeedCrossLaneSync = BlockShape::ThreadPerWarp_N > 1;
     static constexpr bool kNeedCrossWarpSync = BlockShape::WarpPerBlock_N > 1;
 
-    static constexpr bool kPadN    = kPadN_;
-    static constexpr bool kSaveX   = kSaveX_;
-    static constexpr bool kTwoPass = kTwoPass_;
+    static constexpr bool kPadN      = kPadN_;
+    static constexpr bool kSaveX     = kSaveX_;
+    static constexpr bool kThreePass = kThreePass_;
 };
 
 } // namespace ck_tile

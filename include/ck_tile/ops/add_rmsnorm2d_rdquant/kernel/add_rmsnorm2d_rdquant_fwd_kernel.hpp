@@ -47,7 +47,7 @@ struct AddRmsnorm2dRdquantFwd
     static constexpr index_t Block_N = Problem::BlockShape::Block_N;
     static constexpr bool kPadM      = false; // always no need to pad along M
     static constexpr bool kPadN      = Problem::kPadN;
-    static constexpr bool kTwoPass   = Problem::kTwoPass;
+    static constexpr bool kThreePass = Problem::kThreePass;
 
     static constexpr index_t ThreadPerWarp_N = Problem::BlockShape::ThreadPerWarp_N;
     static constexpr index_t Vector_N        = Problem::BlockShape::Vector_N;
@@ -115,7 +115,7 @@ struct AddRmsnorm2dRdquantFwd
             std::string n;
             if (kPadN) n += "_pn";
             if (kSaveX) n += "_x";
-            if (kTwoPass) n += "_2p";
+            if (kThreePass) n += "_2p";
             return n; }();
 
         #define _SS_  std::string
