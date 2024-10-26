@@ -10,13 +10,13 @@ namespace device {
 namespace instance {
 
 // Compilation parameters for in[n, hi, wi, g, c] * wei[g, k, y, x, c] = out[n, ho, wo, g, k]
-void add_device_grouped_conv2d_bwd_weight_xdl_nhwgc_gkyxc_nhwgk_bf16_instances(
+void add_device_grouped_conv2d_bwd_weight_xdl_nhwgc_gkyxc_nhwgk_bf16_f32_bf16_instances(
     std::vector<std::unique_ptr<DeviceGroupedConvBwdWeight<2,
                                                            NHWGC,
                                                            GKYXC,
                                                            NHWGK,
                                                            BF16,
-                                                           BF16,
+                                                           F32,
                                                            BF16,
                                                            PassThrough,
                                                            PassThrough,
@@ -25,19 +25,21 @@ void add_device_grouped_conv2d_bwd_weight_xdl_nhwgc_gkyxc_nhwgk_bf16_instances(
     // 1. Default
     add_device_operation_instances(
         instances,
-        device_grouped_conv_bwd_weight_xdl_c_shuffle_bf16_instances<2,
-                                                                    NHWGC,
-                                                                    GKYXC,
-                                                                    NHWGK,
-                                                                    ConvBwdWeightDefault>{});
+        device_grouped_conv_bwd_weight_xdl_c_shuffle_bf16_f32_bf16_instances<
+            2,
+            NHWGC,
+            GKYXC,
+            NHWGK,
+            ConvBwdWeightDefault>{});
     // 2. Filter1x1Stride1Pad0
-    add_device_operation_instances(instances,
-                                   device_grouped_conv_bwd_weight_xdl_c_shuffle_bf16_instances<
-                                       2,
-                                       NHWGC,
-                                       GKYXC,
-                                       NHWGK,
-                                       ConvBwdWeightFilter1x1Stride1Pad0>{});
+    add_device_operation_instances(
+        instances,
+        device_grouped_conv_bwd_weight_xdl_c_shuffle_bf16_f32_bf16_instances<
+            2,
+            NHWGC,
+            GKYXC,
+            NHWGK,
+            ConvBwdWeightFilter1x1Stride1Pad0>{});
 }
 
 } // namespace instance
