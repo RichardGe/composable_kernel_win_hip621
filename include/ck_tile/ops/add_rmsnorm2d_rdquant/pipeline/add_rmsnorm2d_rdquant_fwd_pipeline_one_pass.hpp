@@ -54,7 +54,7 @@ struct AddRmsnorm2dRdquantFwdPipelineOnePass
                                    const GammaWindow& gamma_window_,
                                    XWindow& x_window,
                                    YScaleWindow& yscale_window,
-                                   QYWindow& y_window,
+                                   QYWindow& qy_window,
                                    ComputeDataType epsilon,
                                    ck_tile::index_t row_size,
                                    void* smem) const
@@ -121,6 +121,7 @@ struct AddRmsnorm2dRdquantFwdPipelineOnePass
         block_reduce2d_sync(absmax, reduce_max_func);
         block_reduce2d_cross_warp_sync(absmax, smem, reduce_max_func);
 
+        // ex: yscale = absmax / 127 if int8
         auto yscale = tile_elementwise_in(
             [&](const auto& v_) {
                 return v_ / type_convert<ComputeDataType>(numeric<QYDataType>::max());
@@ -128,14 +129,14 @@ struct AddRmsnorm2dRdquantFwdPipelineOnePass
             absmax);
         store_tile(yscale_window, cast_tile<YScaleDataType>(yscale));
 
-        // quantize to
+        // quantize y to qy
         auto qy = make_static_distributed_tensor<QYDataType>(y.get_tile_distribution());
         sweep_tile(qy, [&, yscale_ = yscale](auto idx) {
             constexpr auto i_idx = make_tuple(idx[number<0>{}]);
             auto qy_             = y[idx] / yscale_[i_idx];
             qy(idx)              = saturates<QYDataType>{}(qy_);
         });
-        store_tile(y_window, qy);
+        store_tile(qy_window, qy);
     }
 };
 } // namespace ck_tile
