@@ -16,6 +16,24 @@
 
 namespace ck_tile {
 
+/*
+ * tensor_view
+ * abstract the underneath memory buffer(global, LDS, etc...)
+ * and provide a unified get/set function for access
+ *
+ * For addressing into the buffer we use 2 variable to control:
+ * coord : ND tensor coordinate, will calculate the actual offset inside
+ * linear_offset : 1D offset, will be used in the immediate field of
+ *   the buffer instruction to help reduce register usage
+ *
+ * User can use either of the field, or both to indexing into the tensor
+ *
+ * We usually provide 2 set of API for buffer get/set, e.g.
+ * get_vectorized_elements()/get_vectorized_elements_raw()
+ * the former usually will call intrinsic or normal C function, the later
+ * usually will call inline-asm function
+ *
+ */
 template <typename BufferView_,
           typename TensorDesc_,
           memory_operation_enum DstInMemOp_ = memory_operation_enum::set>
@@ -49,22 +67,6 @@ struct tensor_view
 
     CK_TILE_HOST_DEVICE constexpr auto& get_buffer_view() { return buf_; }
 
-#if 0
-    CK_TILE_HOST_DEVICE constexpr DataType get_element(const TensorCoord& coord) const
-    {
-        return buf_.template get<DataType>(
-            coord.get_offset(),
-            coordinate_has_valid_offset_assuming_top_index_is_valid(desc_, coord));
-    }
-
-    CK_TILE_HOST_DEVICE constexpr void set_element(const TensorCoord& coord, const DataType& x)
-    {
-        buf_.template set<DataType>(
-            coord.get_offset(),
-            coordinate_has_valid_offset_assuming_top_index_is_valid(desc_, coord),
-            x);
-    }
-#endif
     // X is vector of DataType.
     // "coord" is coordinate of DataType, not X. "coord" should be aligned to X
     template <typename X,

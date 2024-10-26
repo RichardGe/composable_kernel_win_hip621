@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018-2023, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
 #pragma once
 
@@ -66,32 +66,11 @@ struct space_filling_curve
         return idx_tail - idx_head;
     }
 
-    template <index_t AccessIdx1dHead, index_t AccessIdx1dTail>
-    static CK_TILE_HOST_DEVICE constexpr auto get_step_between_static(number<AccessIdx1dHead>,
-                                                                      number<AccessIdx1dTail>)
-    {
-        static_assert(AccessIdx1dHead >= 0 && AccessIdx1dHead < get_num_of_access(),
-                      "1D index out of range");
-        static_assert(AccessIdx1dTail >= 0 && AccessIdx1dTail < get_num_of_access(),
-                      "1D index out of range");
-
-        constexpr auto idx_head = get_index_static(number<AccessIdx1dHead>{});
-        constexpr auto idx_tail = get_index_static(number<AccessIdx1dTail>{});
-        return idx_tail - idx_head;
-    }
-
     template <index_t AccessIdx1d>
     static CK_TILE_HOST_DEVICE constexpr auto get_forward_step(number<AccessIdx1d>)
     {
         static_assert(AccessIdx1d < get_num_of_access(), "1D index should be larger than 0");
         return get_step_between(number<AccessIdx1d>{}, number<AccessIdx1d + 1>{});
-    }
-
-    template <index_t AccessIdx1d>
-    static CK_TILE_HOST_DEVICE constexpr auto get_forward_step_static(number<AccessIdx1d>)
-    {
-        static_assert(AccessIdx1d < get_num_of_access(), "1D index should be larger than 0");
-        return get_step_between_static(number<AccessIdx1d>{}, number<AccessIdx1d + 1>{});
     }
 
     template <index_t AccessIdx1d>
@@ -102,8 +81,10 @@ struct space_filling_curve
         return get_step_between(number<AccessIdx1d>{}, number<AccessIdx1d - 1>{});
     }
 
+    // Do not use this function directly!
+    // TODO: can refactor into generic lambda in the future
     template <index_t AccessIdx1d>
-    static CK_TILE_HOST_DEVICE constexpr Index get_index(number<AccessIdx1d>)
+    static CK_TILE_HOST_DEVICE constexpr Index _get_index(number<AccessIdx1d>)
     {
 #if 0
         /*
@@ -176,9 +157,9 @@ struct space_filling_curve
 
     // FIXME: return tuple of number<>, which is compile time only variable
     template <index_t AccessIdx1d>
-    static CK_TILE_HOST_DEVICE constexpr auto get_index_static(number<AccessIdx1d>)
+    static CK_TILE_HOST_DEVICE constexpr auto get_index(number<AccessIdx1d>)
     {
-        constexpr auto idx = get_index(number<AccessIdx1d>{});
+        constexpr auto idx = _get_index(number<AccessIdx1d>{});
 
         return generate_tuple([&](auto i) { return number<idx[i]>{}; }, number<nDim>{});
     }

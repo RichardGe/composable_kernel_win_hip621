@@ -487,57 +487,12 @@ struct log2e<float>
 template <typename T = double>
 constexpr T log2e_v = log2e<T>::value;
 
-#if 0
-// math
-CK_TILE_HOST_DEVICE
-float abs(const float& x)
-{
-    union
-    {
-        float f32;
-        uint32_t u32;
-    } y;
-    y.f32 = x;
-    y.u32 = y.u32 & 0x7fffffff;
-    return y.f32;
-}
-
-CK_TILE_HOST_DEVICE
-bool isnan(const float& x)
-{
-    uint32_t xx = bit_cast<uint32_t>(x);
-    return (xx & 0x7fffffff) > 0x7F800000;
-}
-
-CK_TILE_HOST float sqrt(float x) { return std::sqrt(x); };
-
-CK_TILE_HOST double sqrt(double x) { return std::sqrt(x); };
-
-CK_TILE_DEVICE
-float sqrt(float x) { return __builtin_amdgcn_sqrtf(x); };
-
-CK_TILE_DEVICE
-double sqrt(double x) { return __builtin_amdgcn_sqrt(x); };
-
-CK_TILE_DEVICE
-float exp(float x) { return __ocml_exp_f32(x); };
-
-CK_TILE_HOST
-float exp(float x) { return std::expf(x); }
-#endif
-
 CK_TILE_DEVICE
 float exp2(float x) { return exp2f(x); };
 
 CK_TILE_HOST
 float exp2(float x) { return std::exp2f(x); };
-#if 0
-CK_TILE_DEVICE
-float log(float x) { return __logf(x); };
 
-CK_TILE_HOST
-float log(float x) { return std::logf(x); };
-#endif
 CK_TILE_DEVICE uint16_t sad_u16(uint16_t x, uint16_t y, uint16_t acc)
 {
     return __builtin_amdgcn_sad_u16(x, y, acc);

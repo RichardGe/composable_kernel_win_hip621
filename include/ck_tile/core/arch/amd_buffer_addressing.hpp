@@ -1487,8 +1487,7 @@ CK_TILE_DEVICE void amd_async_buffer_load(CK_TILE_LDS_ADDR T* smem,
     {
         index_t v_offset = flag ? v_offset : src_wave_buffer_resource[2];
         llvm_amdgcn_raw_buffer_load_lds(src_wave_buffer_resource,
-                                        smem, // reinterpret_cast<CK_TILE_LDS_ADDR
-                                              // uint32_t*>(reinterpret_cast<uintptr_t>(smem)),
+                                        smem,
                                         sizeof(uint32_t),
                                         v_offset,
                                         src_wave_addr_offset,
@@ -1498,8 +1497,7 @@ CK_TILE_DEVICE void amd_async_buffer_load(CK_TILE_LDS_ADDR T* smem,
     else
     {
         llvm_amdgcn_raw_buffer_load_lds(src_wave_buffer_resource,
-                                        smem, // reinterpret_cast<CK_TILE_LDS_ADDR
-                                              // uint32_t*>(reinterpret_cast<uintptr_t>(smem)),
+                                        smem,
                                         sizeof(uint32_t),
                                         src_thread_addr_offset,
                                         src_wave_addr_offset,

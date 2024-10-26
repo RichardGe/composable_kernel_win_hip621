@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2024, Advanced Micro Devices, Inc. All rights reserved.
+
 #include "topk_softmax_api.hpp"
 
 #define TOPK_SOFTMAX_DISPATCH(experts_)                                                         \

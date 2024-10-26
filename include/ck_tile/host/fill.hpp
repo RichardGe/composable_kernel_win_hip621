@@ -64,7 +64,7 @@ struct FillUniformDistribution_Unique
     float b_{5.f};
     std::optional<uint32_t> seed_{11939};
 
-    std::mt19937 gen_{}; // (seed_.has_value() ? *seed_ : std::random_device{}());
+    std::mt19937 gen_{};
     std::unordered_set<impl::RawIntegerType<T>> set_{};
 
     FillUniformDistribution_Unique(float a                      = -5.f,

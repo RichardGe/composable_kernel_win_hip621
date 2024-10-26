@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2018-2024, Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2024, Advanced Micro Devices, Inc. All rights reserved.
 
 #include <vector>
 #include <iostream>
@@ -14,6 +14,7 @@
 #include "ck_tile/ops/reduce.hpp"
 #include "topk_softmax_api.hpp"
 
+#if 0
 template <typename T>
 void dump_host_tensor_2d(const ck_tile::HostTensor<T>& x)
 {
@@ -27,7 +28,7 @@ void dump_host_tensor_2d(const ck_tile::HostTensor<T>& x)
         {
             if constexpr(std::is_same_v<T, ck_tile::fp16_t>)
             {
-                auto v = ck_tile::type_convert<float>(x(std::vector<std::size_t>{i, j}));
+                auto v = ck_tile::type_convert<float>(x(i, j));
 
                 std::cout << v;
                 if(j != len[1] - 1)
@@ -35,7 +36,7 @@ void dump_host_tensor_2d(const ck_tile::HostTensor<T>& x)
             }
             else
             {
-                std::cout << x(std::vector<std::size_t>{i, j}) << " ";
+                std::cout << x(i, j) << " ";
             }
         }
         std::cout << "]";
@@ -47,6 +48,7 @@ void dump_host_tensor_2d(const ck_tile::HostTensor<T>& x)
     }
     std::cout << "--------------------" << std::endl;
 }
+#endif
 
 // CPU reference
 template <typename InputType, typename WeightType, typename IndexType = ck_tile::index_t>
@@ -76,11 +78,7 @@ auto reference_topk_softmax(const ck_tile::HostTensor<InputType>& x,
 {
     using namespace ck_tile;
 
-    // dump_host_tensor_2d(x);
-
     auto y = reference_softmax<InputType, WeightType, WeightType>(x, dim);
-
-    // dump_host_tensor_2d(y);
     reference_topk(y, y_values, y_indices, k, dim, largest, sorted);
 }
 
@@ -130,7 +128,9 @@ auto create_args(int argc, char* argv[])
         .insert("st_i", "-1", "row stride of input, -1 means same as experts")
         .insert("st_o", "-1", "row stride of output/indices, -1 means same as topk")
         .insert("seed", "-1", "seed to be used, -1 means random every time")
-        .insert("kname", "0", "t to 1 will print kernel name");
+        .insert("kname", "0", "when set to 1 it will print kernel name")
+        .insert("warmup", "5", "number of iterations before benchmark the kernel")
+        .insert("repeat", "20", "number of iterations to benchmark the kernel");
 
     bool result = arg_parser.parse(argc, argv);
     return std::make_tuple(result, arg_parser);
@@ -148,6 +148,10 @@ bool test_topk_softmax(ck_tile::ArgParser args)
     int seed                = args.get_int("seed");
     int stride_input        = args.get_int("st_i");
     int stride_output       = args.get_int("st_o");
+    int kname               = args.get_int("kname");
+    int warmup              = args.get_int("warmup");
+    int repeat              = args.get_int("repeat");
+
     if(stride_input < 0)
     {
         stride_input = experts;
@@ -163,13 +167,12 @@ bool test_topk_softmax(ck_tile::ArgParser args)
     {
         seed = std::time(nullptr);
     }
-    // int kname = args.get_int("kname");
-    // int warmup = args.get_int("warmup");
-    // int repeat = args.get_int("repeat");
 
     if(topk > experts)
     {
-        printf("topk:%d should smaller than (or equal to) experts:%d\n", topk, experts);
+        printf("topk:%d value should be smaller than, or equal to number of experts:%d\n",
+               topk,
+               experts);
         return false;
     }
 
@@ -198,29 +201,22 @@ bool test_topk_softmax(ck_tile::ArgParser args)
 
     x_dev.ToDevice(x_host.data());
 
-    topk_softmax_trait trait = [&]() {
-        topk_softmax_trait t_;
-        t_.input_type  = input_prec;
-        t_.weight_type = weight_prec;
-        t_.experts     = experts;
-        return t_;
-    }();
+    topk_softmax_trait trait{input_prec, weight_prec, experts};
 
-    topk_softmax_kargs karg = [&]() {
-        topk_softmax_kargs a_;
-        a_.p_input       = x_dev.GetDeviceBuffer();
-        a_.p_output      = value_dev.GetDeviceBuffer();
-        a_.p_indices     = index_dev.GetDeviceBuffer();
-        a_.num_rows      = tokens;
-        a_.num_experts   = experts;
-        a_.topk          = topk;
-        a_.stride_input  = stride_input;
-        a_.stride_output = stride_output;
-        return a_;
-    }();
+    topk_softmax_kargs karg{x_dev.GetDeviceBuffer(),
+                            value_dev.GetDeviceBuffer(),
+                            index_dev.GetDeviceBuffer(),
+                            tokens,
+                            experts,
+                            topk,
+                            stride_input,
+                            stride_output};
 
-    ck_tile::stream_config sc{nullptr, true};
-    // ck_tile::stream_config sc{nullptr};
+    ck_tile::stream_config sc{nullptr,
+                              true,
+                              /* log_level = */ (kname ? 1 : 0),
+                              warmup,
+                              repeat};
     auto ms = topk_softmax(trait, karg, sc);
     printf("[%s|%s]tokens:%d, experts:%d, topk:%d, st_i:%d, st_o:%d, ms:%f, ",
            input_prec.c_str(),
@@ -245,11 +241,9 @@ bool test_topk_softmax(ck_tile::ArgParser args)
     bool rtn = true;
     if(validate)
     {
-        // this host buffer will not copy to GPU, so no need use stride
         ck_tile::HostTensor<WeightType> value_ref({tokens, topk}, {stride_output, 1});
         ck_tile::HostTensor<IndexType> index_ref({tokens, topk}, {stride_output, 1});
 
-        // auto [value_ref, index_ref] =
         reference_topk_softmax<InputType, WeightType, IndexType>(
             x_host, value_ref, index_ref, topk);
 

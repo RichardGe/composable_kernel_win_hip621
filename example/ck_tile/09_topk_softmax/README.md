@@ -1,6 +1,6 @@
 # topk-softmax
 
-This folder contains example for topk-softmax kernel using ck_tile tile-programming implementation. This kernel is often used in Moe model, before launching the fused-moe-gemm block. The input is a `token*expert` 2d matrix, will to a softmax per row(`expert`), then find the `topk` value for each row. Output is a `token*topk`  weight(usually fp32) and index(int32) 2d tensor
+This folder contains example for topk-softmax kernel using ck_tile tile-programming implementation. This kernel is often used in Moe model, before launching the fused-moe-gemm block. The input is a `token*expert` 2d matrix. The op will do a softmax per row(`expert`), then find the `topk` value for each row. Output is a `token*topk`  weight(usually fp32) and index(int32) 2d tensor.
 
 ## build
 ```
@@ -23,6 +23,6 @@ args:
        -st_i    row stride of input, -1 means same as experts (default:-1)
        -st_o    row stride of output/indices, -1 means same as topk (default:-1)
        -seed    seed to be used, -1 means random every time (default:-1)
-      -kname    t to 1 will print kernel name (default:0)
+      -kname    when set to 1 it will print kernel name (default:0)
 
 ```

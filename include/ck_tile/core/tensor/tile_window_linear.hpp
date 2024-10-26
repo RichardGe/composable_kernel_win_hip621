@@ -344,8 +344,7 @@ struct tile_window_linear
 
             if constexpr(i_access != (NumAccess - 1))
             {
-                constexpr auto idx_diff_ys =
-                    SFC_Ys::get_forward_step_static(i_access); // tuple of number
+                constexpr auto idx_diff_ys = SFC_Ys::get_forward_step(i_access); // tuple of number
                 constexpr auto idx_diff_ps_ys = container_concat(
                     generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}),
                     idx_diff_ys);
@@ -403,7 +402,7 @@ struct tile_window_linear
     CK_TILE_DEVICE static constexpr auto get_bottom_linear_coordinate(number<i_access>)
     {
         using SFC_Ys          = typename traits::SFC_Ys;
-        constexpr auto idx_ys = SFC_Ys::get_index_static(number<i_access>{});
+        constexpr auto idx_ys = SFC_Ys::get_index(number<i_access>{});
         using ys_to_rhs_major =
             typename decltype(TileDstr{}.get_static_tile_distribution_encoding())::Ys2RHsMajor;
 
@@ -485,7 +484,7 @@ struct tile_window_linear
             constexpr auto idx_diff_ys = SFC_Ys::get_index(IAccess);
             // write into distributed tensor
             static_for<0, traits::ScalarPerVector, 1>{}([&](auto j) {
-                constexpr auto idx_ys = generate_array(
+                constexpr auto idx_ys = generate_tuple(
                     [&](auto jj) {
                         return jj == traits::VectorDimY ? (idx_diff_ys[jj] + j) : idx_diff_ys[jj];
                     },
@@ -497,8 +496,7 @@ struct tile_window_linear
                     vec_value.template get_as<DataType>()[j];
             });
 #else
-            constexpr index_t d =
-                tile_dstr.get_ys_to_d_descriptor().calculate_offset(idx_ys_start_static);
+            constexpr index_t d = tile_dstr.get_ys_to_d_descriptor().calculate_offset(idx_ys_start);
             static_assert(d % traits::ScalarPerVector == 0);
 
             dst_tensor.get_thread_buffer().template get_as<vector_t>()(
@@ -548,9 +546,8 @@ struct tile_window_linear
             auto bottom_tensor_flag         = cached_flags_[IAccess];
 
             // data index [y0, y1, ...]
-            constexpr auto idx_ys_start_static = SFC_Ys::get_index_static(IAccess);
-            constexpr index_t d =
-                tile_dstr.get_ys_to_d_descriptor().calculate_offset(idx_ys_start_static);
+            constexpr auto idx_ys_start = SFC_Ys::get_index(IAccess);
+            constexpr index_t d = tile_dstr.get_ys_to_d_descriptor().calculate_offset(idx_ys_start);
             static_assert(d % traits::ScalarPerVector == 0);
 
             get_bottom_tensor_view().template get_vectorized_elements_raw<vector_t>(
@@ -735,7 +732,7 @@ struct tile_window_linear
             vector_t vec_value;
 
             static_for<0, traits::ScalarPerVector, 1>{}([&](auto j) {
-                constexpr auto idx_ys = generate_array(
+                constexpr auto idx_ys = generate_tuple(
                     [&](auto jj) {
                         return jj == traits::VectorDimY ? (idx_ys_start[jj] + j) : idx_ys_start[jj];
                     },
@@ -783,7 +780,7 @@ struct tile_window_linear
             // read from distributed tensor
             vector_t vec_value;
             static_for<0, traits::ScalarPerVector, 1>{}([&](auto j) {
-                constexpr auto idx_ys = generate_array(
+                constexpr auto idx_ys = generate_tuple(
                     [&](auto jj) {
                         return jj == traits::VectorDimY ? (idx_ys_start[jj] + j) : idx_ys_start[jj];
                     },
@@ -828,7 +825,7 @@ struct tile_window_linear
             vector_t vec_value;
 
             static_for<0, traits::ScalarPerVector, 1>{}([&](auto j) {
-                constexpr auto idx_ys = generate_array(
+                constexpr auto idx_ys = generate_tuple(
                     [&](auto jj) {
                         return jj == traits::VectorDimY ? (idx_ys_start[jj] + j) : idx_ys_start[jj];
                     },
@@ -913,8 +910,7 @@ struct tile_window_linear
 
             if constexpr(i_access != (NumAccess - 1))
             {
-                constexpr auto idx_diff_ys =
-                    SFC_Ys::get_forward_step_static(i_access); // tuple of number
+                constexpr auto idx_diff_ys = SFC_Ys::get_forward_step(i_access); // tuple of number
                 constexpr auto idx_diff_ps_ys = container_concat(
                     generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}),
                     idx_diff_ys);

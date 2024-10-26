@@ -192,7 +192,8 @@ struct tile_window_with_static_distribution
             constexpr auto idx_diff_ys =
                 SFC_Ys::get_step_between(number<0>{}, number<iCoord * NumAccessPerCoord>{});
 
-            constexpr auto idx_diff_ps_ys = container_concat(array<index_t, NDimP>{0}, idx_diff_ys);
+            constexpr auto idx_diff_ps_ys = container_concat(
+                generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}), idx_diff_ys);
 
             move_window_adaptor_and_bottom_tensor_thread_coordinate(
                 window_adaptor_thread_coord, bottom_tensor_thread_coord, idx_diff_ps_ys);
@@ -317,7 +318,7 @@ struct tile_window_with_static_distribution
 #if 1
                 // write into distributed tensor
                 static_for<0, Traits::ScalarPerVector, 1>{}([&](auto j) {
-                    constexpr auto idx_ys = generate_array(
+                    constexpr auto idx_ys = generate_tuple(
                         [&](auto jj) {
                             return jj == Traits::VectorDimY ? (idx_ys_start[jj] + j)
                                                             : idx_ys_start[jj];
@@ -341,7 +342,7 @@ struct tile_window_with_static_distribution
                 // move thread coordinate
                 if constexpr(iCoordAccess != (NumAccessPerCoord - 1))
                 {
-                    constexpr auto idx_diff_ys = SFC_Ys::get_forward_step_static(iAccess);
+                    constexpr auto idx_diff_ys = SFC_Ys::get_forward_step(iAccess);
 
                     constexpr auto idx_diff_ps_ys = container_concat(
                         generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}),
@@ -420,8 +421,9 @@ struct tile_window_with_static_distribution
                 {
                     constexpr auto idx_diff_ys = SFC_Ys::get_forward_step(iAccess);
 
-                    constexpr auto idx_diff_ps_ys =
-                        container_concat(array<index_t, NDimP>{0}, idx_diff_ys);
+                    constexpr auto idx_diff_ps_ys = container_concat(
+                        generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}),
+                        idx_diff_ys);
 
                     move_window_adaptor_and_bottom_tensor_thread_coordinate(
                         window_adaptor_thread_coord, bottom_tensor_thread_coord, idx_diff_ps_ys);
@@ -500,8 +502,9 @@ struct tile_window_with_static_distribution
                 {
                     constexpr auto idx_diff_ys = SFC_Ys::get_forward_step(iAccess);
 
-                    constexpr auto idx_diff_ps_ys =
-                        container_concat(array<index_t, NDimP>{0}, idx_diff_ys);
+                    constexpr auto idx_diff_ps_ys = container_concat(
+                        generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}),
+                        idx_diff_ys);
 
                     move_window_adaptor_and_bottom_tensor_thread_coordinate(
                         window_adaptor_thread_coord, bottom_tensor_thread_coord, idx_diff_ps_ys);
@@ -571,8 +574,9 @@ struct tile_window_with_static_distribution
                 {
                     constexpr auto idx_diff_ys = SFC_Ys::get_forward_step(iAccess);
 
-                    constexpr auto idx_diff_ps_ys =
-                        container_concat(array<index_t, NDimP>{0}, idx_diff_ys);
+                    constexpr auto idx_diff_ps_ys = container_concat(
+                        generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}),
+                        idx_diff_ys);
 
                     move_window_adaptor_and_bottom_tensor_thread_coordinate(
                         window_adaptor_thread_coord, bottom_tensor_thread_coord, idx_diff_ps_ys);
@@ -612,7 +616,7 @@ struct tile_window_with_static_distribution
                 vector_t vec_value;
 
                 static_for<0, Traits::ScalarPerVector, 1>{}([&](auto j) {
-                    constexpr auto idx_ys = generate_array(
+                    constexpr auto idx_ys = generate_tuple(
                         [&](auto jj) {
                             return jj == Traits::VectorDimY ? (idx_ys_start[jj] + j)
                                                             : idx_ys_start[jj];
@@ -640,8 +644,9 @@ struct tile_window_with_static_distribution
                 {
                     constexpr auto idx_diff_ys = SFC_Ys::get_forward_step(iAccess);
 
-                    constexpr auto idx_diff_ps_ys =
-                        container_concat(array<index_t, NDimP>{0}, idx_diff_ys);
+                    constexpr auto idx_diff_ps_ys = container_concat(
+                        generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}),
+                        idx_diff_ys);
 
                     move_window_adaptor_and_bottom_tensor_thread_coordinate(
                         window_adaptor_thread_coord, bottom_tensor_thread_coord, idx_diff_ps_ys);
@@ -677,7 +682,7 @@ struct tile_window_with_static_distribution
                 // read from distributed tensor
                 vector_t vec_value;
                 static_for<0, Traits::ScalarPerVector, 1>{}([&](auto j) {
-                    constexpr auto idx_ys = generate_array(
+                    constexpr auto idx_ys = generate_tuple(
                         [&](auto jj) {
                             return jj == Traits::VectorDimY ? (idx_ys_start[jj] + j)
                                                             : idx_ys_start[jj];
@@ -699,8 +704,9 @@ struct tile_window_with_static_distribution
                 {
                     constexpr auto idx_diff_ys = SFC_Ys::get_forward_step(iAccess);
 
-                    constexpr auto idx_diff_ps_ys =
-                        container_concat(array<index_t, NDimP>{0}, idx_diff_ys);
+                    constexpr auto idx_diff_ps_ys = container_concat(
+                        generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}),
+                        idx_diff_ys);
 
                     move_window_adaptor_and_bottom_tensor_thread_coordinate(
                         window_adaptor_thread_coord, bottom_tensor_thread_coord, idx_diff_ps_ys);
@@ -737,7 +743,7 @@ struct tile_window_with_static_distribution
                 vector_t vec_value;
 
                 static_for<0, Traits::ScalarPerVector, 1>{}([&](auto j) {
-                    constexpr auto idx_ys = generate_array(
+                    constexpr auto idx_ys = generate_tuple(
                         [&](auto jj) {
                             return jj == Traits::VectorDimY ? (idx_ys_start[jj] + j)
                                                             : idx_ys_start[jj];
@@ -763,8 +769,9 @@ struct tile_window_with_static_distribution
                 {
                     constexpr auto idx_diff_ys = SFC_Ys::get_forward_step(iAccess);
 
-                    constexpr auto idx_diff_ps_ys =
-                        container_concat(array<index_t, NDimP>{0}, idx_diff_ys);
+                    constexpr auto idx_diff_ps_ys = container_concat(
+                        generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}),
+                        idx_diff_ys);
 
                     move_window_adaptor_and_bottom_tensor_thread_coordinate(
                         window_adaptor_thread_coord, bottom_tensor_thread_coord, idx_diff_ps_ys);
@@ -836,7 +843,8 @@ struct tile_window_with_static_distribution
             constexpr auto idx_diff_ys =
                 SFC_Ys::get_step_between(number<0>{}, number<iCoord * NumAccessPerCoord>{});
 
-            constexpr auto idx_diff_ps_ys = container_concat(array<index_t, NDimP>{0}, idx_diff_ys);
+            constexpr auto idx_diff_ps_ys = container_concat(
+                generate_tuple([&](auto) { return number<0>{}; }, number<NDimP>{}), idx_diff_ys);
 
             move_window_adaptor_and_bottom_tensor_thread_coordinate(
                 window_adaptor_thread_coord, bottom_tensor_thread_coord, idx_diff_ps_ys);
@@ -888,7 +896,7 @@ make_tile_window(const TensorView_& tensor_view,
         tensor_view, window_lengths, origin, tile_distribution};
 }
 
-// this version must not be called under a constexpr context
+// this version can't be called in a constexpr context
 template <typename TensorView_,
           typename WindowLengths_,
           typename StaticTileDistribution_,

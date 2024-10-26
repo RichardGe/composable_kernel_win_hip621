@@ -766,16 +766,6 @@ struct buffer_view<address_space_enum::lds,
                                           bool /*is_valid_element*/,
                                           bool_constant<pre_nop> = {}) const
     {
-#if 0
-        constexpr index_t scalar_per_t_vector = vector_traits<remove_cvref_t<T>>::vector_size;
-
-        constexpr index_t scalar_per_x_vector = vector_traits<remove_cvref_t<X>>::vector_size;
-
-        static_assert(scalar_per_x_vector % scalar_per_t_vector == 0,
-                      "wrong! X should contain multiple T");
-
-        constexpr index_t t_per_x = scalar_per_x_vector / scalar_per_t_vector;
-#endif
         smem_load<sizeof(X)>{}(dst, v_offset * sizeof(T), i_offset * sizeof(T));
     }
 
