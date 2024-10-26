@@ -117,7 +117,7 @@ struct AddRmsnorm2dRdquantFwdPipelineOnePass
 
         // compute absmax, each-thread->cross-lane->cross-warp
         auto absmax = block_reduce2d(
-            x, reduce_absmax_func.GetIdentityValue<ComputeDataType>(), reduce_absmax_func);
+            y, reduce_absmax_func.GetIdentityValue<ComputeDataType>(), reduce_absmax_func);
         block_reduce2d_sync(absmax, reduce_max_func);
         block_reduce2d_cross_warp_sync(absmax, smem, reduce_max_func);
 
