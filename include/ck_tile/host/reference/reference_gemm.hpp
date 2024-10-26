@@ -20,22 +20,16 @@ template <typename ADataType,
           typename AElementOp   = ck_tile::identity,
           typename BElementOp   = ck_tile::identity,
           typename ACCElementOp = ck_tile::identity>
-CK_TILE_HOST void reference_gemm(const HostTensor<ADataType>& a_m_k,
+CK_TILE_HOST void reference_gemm_cpu(const HostTensor<ADataType>& a_m_k,
                                  const HostTensor<BDataType>& b_n_k,
                                  HostTensor<CDataType>& c_m_n,
                                  const AElementOp& a_element_op     = {},
                                  const BElementOp& b_element_op     = {},
                                  const ACCElementOp& acc_element_op = {})
 {
-    const int N = (std::is_same_v<LayoutB, tensor_layout::gemm::ColumnMajor>)
-                      ? b_n_k.mDesc.get_lengths()[0]
-                      : b_n_k.mDesc.get_lengths()[1];
-    const int K = (std::is_same_v<LayoutA, tensor_layout::gemm::RowMajor>)
-                      ? a_m_k.mDesc.get_lengths()[1]
-                      : a_m_k.mDesc.get_lengths()[0];
-    const int M = (std::is_same_v<LayoutA, tensor_layout::gemm::RowMajor>)
-                      ? a_m_k.mDesc.get_lengths()[0]
-                      : a_m_k.mDesc.get_lengths()[1];
+    const int N = b_n_k.mDesc.get_lengths()[0];
+    const int K = a_m_k.mDesc.get_lengths()[1];
+    const int M = a_m_k.mDesc.get_lengths()[0];
 
     auto f = [&](auto m) {
         for(int n = 0; n < N; ++n)

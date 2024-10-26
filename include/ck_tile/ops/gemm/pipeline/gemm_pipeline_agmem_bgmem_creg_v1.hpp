@@ -118,8 +118,7 @@ struct GemmPipelineAGmemBGmemCRegV1
         auto b_copy_lds_window =
             make_tile_window(b_lds_block,
                              make_tuple(number<kNPerBlock>{}, number<kKPerBlock>{}),
-                             {0, 0},
-                             b_copy_dram_window.get_tile_distribution());
+                             {0, 0});
 
         // A LDS tile for block GEMM
         auto a_lds_gemm_window = make_tile_window(
@@ -156,11 +155,13 @@ struct GemmPipelineAGmemBGmemCRegV1
             if constexpr(std::is_same_v<LayoutB, tensor_layout::gemm::RowMajor>)
             {
                 auto b_shuffle_tmp = make_static_distributed_tensor<BDataType>(
-                    Policy::template MakeShuffleBRegBlockDescriptor<Problem>());
+                    Policy::template MakeShuffledBRegBlockDescriptor<Problem>());
                 shuffle_tile(b_shuffle_tmp, b_block_tile);
-                store_tile(b_copy_lds_window, tile_elementwise_in(b_element_func, b_shuffle_tmp));
-                
-            } else {
+                const auto b_block_tile_tmp = tile_elementwise_in(b_element_func, b_shuffle_tmp);
+                store_tile(b_copy_lds_window, b_block_tile_tmp);
+            }
+            else
+            {
                 store_tile(b_copy_lds_window, tile_elementwise_in(b_element_func, b_block_tile));
             }
         }
@@ -191,10 +192,13 @@ struct GemmPipelineAGmemBGmemCRegV1
             if constexpr(std::is_same_v<LayoutB, tensor_layout::gemm::RowMajor>)
             {
                 auto b_shuffle_tmp_loop = make_static_distributed_tensor<BDataType>(
-                    Policy::template MakeShuffleBRegBlockDescriptor<Problem>());
+                    Policy::template MakeShuffledBRegBlockDescriptor<Problem>());
                 shuffle_tile(b_shuffle_tmp_loop, b_block_tile);
-                store_tile(b_copy_lds_window, tile_elementwise_in(b_element_func, b_shuffle_tmp_loop));
-            } else {
+                store_tile(b_copy_lds_window,
+                           tile_elementwise_in(b_element_func, b_shuffle_tmp_loop));
+            }
+            else
+            {
                 const auto b_block_tile_tmp = tile_elementwise_in(b_element_func, b_block_tile);
                 store_tile(b_copy_lds_window, b_block_tile_tmp);
             }

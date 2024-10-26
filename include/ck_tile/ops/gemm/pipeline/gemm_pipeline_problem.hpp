@@ -32,6 +32,8 @@ struct GemmPipelineProblem
     using LayoutC = remove_cvref_t<typename GemmTraits::LayoutC>;
 
     static constexpr index_t AlignmentA = kPadA ? 1 : VectorLoadSize / sizeof(ADataType);
+    static_assert(kPadA == 0);
+    static_assert(AlignmentA == 8);
     static constexpr index_t AlignmentB = kPadB ? 1 : VectorLoadSize / sizeof(BDataType);
     static constexpr index_t AlignmentC = kPadC ? 1 : VectorLoadSize / sizeof(CDataType);
 };

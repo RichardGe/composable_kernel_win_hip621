@@ -40,8 +40,8 @@ template <typename LayoutA,
 float gemm_calc(const gemm_basic_args& args, const ck_tile::stream_config& s)
 {
     // The kPadA, kPadB, kPadC & kBlockPerCu should also come from the Codegen part.
-    constexpr bool kPadA        = true;
-    constexpr bool kPadB        = true;
+    constexpr bool kPadA        = false;
+    constexpr bool kPadB        = false;
     constexpr bool kTilePermute = false;
 
     constexpr int kBlockPerCu = 1;
@@ -223,18 +223,9 @@ int main(int argc, char* argv[])
     using matrix_c_layout = ck_tile::tensor_layout::gemm::RowMajor;
 
     // host verify
-    std::vector<int> a_dimensions =
-        (std::is_same_v<matrix_a_layout, ck_tile::tensor_layout::gemm::RowMajor>)
-            ? std::vector<int>{M, K}
-            : std::vector<int>{K, M};
-    std::vector<int> b_dimensions =
-        (std::is_same_v<matrix_b_layout, ck_tile::tensor_layout::gemm::ColumnMajor>)
-            ? std::vector<int>{N, K}
-            : std::vector<int>{K, N};
-    std::vector<int> c_dimensions =
-        (std::is_same_v<matrix_c_layout, ck_tile::tensor_layout::gemm::RowMajor>)
-            ? std::vector<int>{M, N}
-            : std::vector<int>{N, M};
+    std::vector<int> a_dimensions = std::vector<int>{M, K};
+    std::vector<int> b_dimensions = std::vector<int>{N, K};
+    std::vector<int> c_dimensions = std::vector<int>{M, N};
 
     ck_tile::HostTensor<ADataType> a_host(a_dimensions);
     ck_tile::HostTensor<BDataType> b_host(b_dimensions);
@@ -253,14 +244,14 @@ int main(int argc, char* argv[])
     b_buf.ToDevice(b_host.data());
 
     // The kPadA, kPadB, kPadC & kBlockPerCu should also come from the Codegen part.
-    constexpr bool kPadA = true;
-    constexpr bool kPadB = true;
-    constexpr bool kPadC = true;
+    constexpr bool kPadA = false;
+    constexpr bool kPadB = false;
+    constexpr bool kPadC = false;
 
     // This part comes from the Codegen
     constexpr ck_tile::index_t M_Tile = 128;
-    constexpr ck_tile::index_t N_Tile = 128;
-    constexpr ck_tile::index_t K_Tile = 32;
+    constexpr ck_tile::index_t N_Tile = 256;
+    constexpr ck_tile::index_t K_Tile = 64;
 
     constexpr ck_tile::index_t M_Warp = 2;
     constexpr ck_tile::index_t N_Warp = 2;
@@ -282,7 +273,7 @@ int main(int argc, char* argv[])
         GemmPipelineProblem<ADataType, BDataType, AccDataType, CodegenGemmShape, CodegenGemmTraits>;
 
     using CodegenGemmPolicy = ck_tile::
-        UniversalGemmPipelineAgBgCrPolicy<matrix_a_layout, matrix_b_layout, matrix_c_layout>;
+        GemmPipelineAGmemBGmemCRegV1DefaultPolicy;
 
     using CodegenGemmPipeline =
         ck_tile::GemmPipelineAGmemBGmemCRegV1<CodegenPipelineProblem, CodegenGemmPolicy>;
@@ -302,7 +293,7 @@ int main(int argc, char* argv[])
     if(arg_parser.get_int("v") == 1)
     {
         // ToDo: Will Add the Element Op (bias) verification in the future.
-        ck_tile::reference_gemm<ADataType,
+        ck_tile::reference_gemm_cpu<ADataType,
                                 BDataType,
                                 AccDataType,
                                 CDataType,
