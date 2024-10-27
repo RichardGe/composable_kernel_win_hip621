@@ -63,8 +63,13 @@ struct AddRmsnorm2dRdquantFwdPipelineThreePass
             make_tile_window(a_window_, Policy::template MakeABXBlockTileDistribution<Problem>());
         auto b_window =
             make_tile_window(b_window_, Policy::template MakeABXBlockTileDistribution<Problem>());
-        auto x_window =
-            make_tile_window(x_window_, Policy::template MakeABXBlockTileDistribution<Problem>());
+        auto x_window = [&]() {
+            if constexpr(kSaveX)
+                return make_tile_window(x_window_,
+                                        Policy::template MakeABXBlockTileDistribution<Problem>());
+            else
+                return x_window_;
+        }();
         auto gamma_window = make_tile_window(
             gamma_window_, Policy::template MakeGammaBlockTileDistribution<Problem>());
 
