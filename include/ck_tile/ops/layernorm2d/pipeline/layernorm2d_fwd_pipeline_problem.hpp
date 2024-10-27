@@ -15,9 +15,7 @@ template <typename XDataType_,
           typename MeanDataType_,
           typename InvStdDataType_,
           typename BlockShape_,
-          bool kPadN_,
-          bool kSaveMeanInvStd_,
-          bool kTwoPass_>
+          typename Traits_>
 struct Layernorm2dFwdPipelineProblem
 {
     using XDataType       = remove_cvref_t<XDataType_>;
@@ -32,9 +30,7 @@ struct Layernorm2dFwdPipelineProblem
     static constexpr bool kNeedCrossLaneSync = BlockShape::ThreadPerWarp_N > 1;
     static constexpr bool kNeedCrossWarpSync = BlockShape::WarpPerBlock_N > 1;
 
-    static constexpr bool kPadN           = kPadN_;
-    static constexpr bool kSaveMeanInvStd = kSaveMeanInvStd_;
-    static constexpr bool kTwoPass        = kTwoPass_;
+    using Traits = remove_cvref_t<Traits_>;
 };
 
 } // namespace ck_tile
