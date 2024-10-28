@@ -54,7 +54,7 @@ bool run(const ck_tile::ArgParser& arg_parser)
 
     assert(stride >= n);
 
-    using TypeConfig = RmsNormTypeConfig<DataType>;
+    using TypeConfig = RmsnormTypeConfig<DataType>;
 
     using XDataType     = typename TypeConfig::XDataType;
     using YDataType     = typename TypeConfig::YDataType;

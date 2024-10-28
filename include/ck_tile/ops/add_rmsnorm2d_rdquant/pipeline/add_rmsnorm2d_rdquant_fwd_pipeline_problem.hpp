@@ -7,7 +7,7 @@
 
 namespace ck_tile {
 
-// X = A + B, Y = RmsNorm2d(X), QY = RowwiseDynamicQuant(Y) = SaturateCast(Y / YScale)
+// X = A + B, Y = Rmsnorm2d(X), QY = RowwiseDynamicQuant(Y) = SaturateCast(Y / YScale)
 template <typename ADataType_,
           typename BDataType_,
           typename GammaDataType_,

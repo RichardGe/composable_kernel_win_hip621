@@ -36,11 +36,11 @@ float rmsnorm2d_fwd_(const S& s, A a)
     using DataType = typename Traits_::DataType;
 
     using PipelineProblem =
-        ck_tile::Rmsnorm2dFwdPipelineProblem<typename RmsNormTypeConfig<DataType>::XDataType,
-                                             typename RmsNormTypeConfig<DataType>::GammaDataType,
-                                             typename RmsNormTypeConfig<DataType>::ComputeDataType,
-                                             typename RmsNormTypeConfig<DataType>::YDataType,
-                                             typename RmsNormTypeConfig<DataType>::InvRmsDataType,
+        ck_tile::Rmsnorm2dFwdPipelineProblem<typename RmsnormTypeConfig<DataType>::XDataType,
+                                             typename RmsnormTypeConfig<DataType>::GammaDataType,
+                                             typename RmsnormTypeConfig<DataType>::ComputeDataType,
+                                             typename RmsnormTypeConfig<DataType>::YDataType,
+                                             typename RmsnormTypeConfig<DataType>::InvRmsDataType,
                                              typename Traits_::Shape,
                                              Traits_::kPadN,
                                              Traits_::kSaveInvRms,
