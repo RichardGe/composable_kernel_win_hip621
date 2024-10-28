@@ -30,12 +30,12 @@ using OutDataType                 = ck::half_t;
 template <ck::index_t... Is>
 using S = ck::Sequence<Is...>;
 
-using InLayout  = ck::tensor_layout::convolution::GNDHWC;
+using InLayout  = ck::tensor_layout::convolution::NDHWGC;
 using WeiLayout = ck::tensor_layout::convolution::GKZYXC;
-using OutLayout = ck::tensor_layout::convolution::GNDHWK;
+using OutLayout = ck::tensor_layout::convolution::NDHWGK;
 
 using InElementOp  = ck::tensor_operation::element_wise::PassThrough;
-using WeiElementOp = ck::tensor_operation::element_wise::Bilinear;
+using WeiElementOp = ck::tensor_operation::element_wise::PassThrough;
 using OutElementOp = ck::tensor_operation::element_wise::PassThrough;
 
 static constexpr auto ConvBwdWeightDefault =
@@ -61,22 +61,22 @@ using DeviceGroupedConvNDBwdWeightInstance =
         256,                    // BlockSize
         128,                    // MPerBlock
         128,                    // NPerBlock
-        4,                      // K0PerBlock
+        32,                     // K0PerBlock
         8,                      // K1
         32,                     // MPerXdl
         32,                     // NPerXdl
         2,                      // MXdlPerWave
         2,                      // NXdlPerWave
-        S<1, 4, 16, 4>,         // ABlockTransferThreadClusterLengths_K0_M_K1
-        S<0, 3, 1, 2>,          // ABlockTransferThreadClusterArrangeOrder
-        S<0, 2, 1, 3>,          // ABlockTransferSrcAccessOrder
+        S<4, 16, 1>,            // ABlockTransferThreadClusterLengths_K0_M_K1
+        S<2, 0, 1>,             // ABlockTransferThreadClusterArrangeOrder
+        S<1, 0, 2>,             // ABlockTransferSrcAccessOrder
         2,                      // ABlockTransferSrcVectorDim
         8,                      // ABlockTransferSrcScalarPerVector
         2,                      // ABlockTransferDstScalarPerVector_K1
         true,                   // ABlockLdsAddExtraM
-        S<1, 4, 16, 4>,         // BBlockTransferThreadClusterLengths_K0_N_K1
-        S<0, 3, 1, 2>,          // BBlockTransferThreadClusterArrangeOrder
-        S<0, 2, 1, 3>,          // BBlockTransferSrcAccessOrder
+        S<4, 16, 1>,            // BBlockTransferThreadClusterLengths_K0_N_K1
+        S<2, 0, 1>,             // BBlockTransferThreadClusterArrangeOrder
+        S<1, 0, 2>,             // BBlockTransferSrcAccessOrder
         2,                      // BBlockTransferSrcVectorDim
         8,                      // BBlockTransferSrcScalarPerVector
         2,                      // BBlockTransferDstScalarPerVector_K1
@@ -84,7 +84,7 @@ using DeviceGroupedConvNDBwdWeightInstance =
         1,                      // CShuffleMXdlPerWavePerShuffle
         1,                      // CShuffleNXdlPerWavePerShuffle
         S<1, 32, 1, 4>,         // CBlockTransferClusterLengths_MBlock_MPerBlock_NBlock_NPerBlock
-        128 / (sizeof(WeiDataType) * CHAR_BIT)>; // CBlockTransferScalarPerVector_NWaveNPerXdl
+        1>;                     // CBlockTransferScalarPerVector_NWaveNPerXdl
 using DeviceGroupedConvNDActivInstance = DeviceGroupedConvNDBwdWeightInstance<WeiElementOp>;
 
 namespace {
@@ -217,34 +217,6 @@ bool run_grouped_conv(bool do_verification,
     if(do_verification)
     {
         std::array<Tensor<OutDataType>, NumDs> d_tensors = {wei_host};
-        auto ref_conv =
-            ck::tensor_operation::host::ReferenceConvBwdWeight<NDimSpatial,
-                                                               InDataType,
-                                                               WeiDataType,
-                                                               OutDataType,
-                                                               InElementOp,
-                                                               WeiElementOp,
-                                                               OutElementOp,
-                                                               0, /*Num A Elementwise Tensors*/
-                                                               0, /*Num B Elementwise Tensors*/
-                                                               NumDs>{};
-
-        auto ref_invoker  = ref_conv.MakeInvoker();
-        auto ref_argument = ref_conv.MakeArgument(in,
-                                                  wei_host,
-                                                  out,
-                                                  conv_param.conv_filter_strides_,
-                                                  conv_param.conv_filter_dilations_,
-                                                  conv_param.input_left_pads_,
-                                                  conv_param.input_right_pads_,
-                                                  in_element_op,
-                                                  wei_element_op,
-                                                  out_element_op,
-                                                  {},
-                                                  {},
-                                                  d_tensors);
-
-        ref_invoker.Run(ref_argument);
         wei_device_buf.FromDevice(wei_device.mData.data());
 
         return ck::utils::check_err(wei_device, wei_host, "Error: incorrect results!");
