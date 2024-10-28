@@ -187,7 +187,7 @@ float layernorm2d_fwd_(const S& s, A a)
     using TwoPassPipeline = ck_tile::Layernorm2dFwdPipelineTwoPass<PipelineProblem>;
     using Pipeline        = std::conditional_t<Traits_::kTwoPass, TwoPassPipeline, OnePassPipeline>;
 
-    using Default2DEpilogueProblem = ck_tile::Default2DEpilogueProblem<ComputeDataType, YDataType, false, Traits_::kPadN>;
+    using Default2DEpilogueProblem = ck_tile::Default2DEpilogueProblem<ComputeDataType, YDataType, false, Traits_::kPadN, false>;
     using Default2DEpilogue = ck_tile::Default2DEpilogue<Default2DEpilogueProblem>;
 
     using Epilogue = Default2DEpilogue;
