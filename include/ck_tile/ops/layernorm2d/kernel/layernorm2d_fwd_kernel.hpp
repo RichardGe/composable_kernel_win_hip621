@@ -127,9 +127,9 @@ struct Layernorm2dFwd
 
     CK_TILE_HOST static std::string GetName()
     {
+#define _SS_ std::string
+#define _TS_ std::to_string
         // clang-format off
-        #define _SS_  std::string
-        #define _TS_  std::to_string
         using S_ = typename Problem::BlockShape;
         auto surfix = [&] () {
             std::string n;
@@ -144,9 +144,9 @@ struct Layernorm2dFwd
              _TS_(S_::Block_M) + "x" + _TS_(S_::Block_N) + "_" + _TS_(S_::WarpPerBlock_M) + "x" + _TS_(S_::WarpPerBlock_N) + "_" +
              _TS_(S_::Warp_M) + "x" + _TS_(S_::Warp_N) + "_" + _TS_(S_::Vector_M) + "x" + _TS_(S_::Vector_N) + "_" +
              _SS_(Pipeline::name) + surfix;
-        #undef _SS_
-        #undef _TS_
         // clang-format on
+#undef _SS_
+#undef _TS_
     }
 
     CK_TILE_DEVICE void operator()(Kargs kargs) const
