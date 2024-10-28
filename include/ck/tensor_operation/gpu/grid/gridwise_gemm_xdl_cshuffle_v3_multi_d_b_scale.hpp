@@ -1359,7 +1359,7 @@ struct GridwiseGemmMultiD_BScale_xdl_cshuffle_v3
             (a_grid_desc_ak0_m_ak1.GetLength(I0) * a_grid_desc_ak0_m_ak1.GetLength(I2)) /
             KPerBlock);
 
-        //const index_t ScaleSliceSizeM = 1;
+        // const index_t ScaleSliceSizeM = 1;
         const index_t ScaleSliceSizeN = NXdlPerWave;
         const index_t ScaleSliceSizeK = 1;
 

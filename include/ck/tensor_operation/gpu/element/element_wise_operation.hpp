@@ -247,6 +247,16 @@ struct MultiplyAdd
         const float y = c * d0 + d1;
         e             = y;
     }
+
+    template <>
+    __host__ __device__ void operator()<half_t, int8_t, half_t, half_t>(half_t& e,
+                                                                        const int8_t& c,
+                                                                        const half_t& d0,
+                                                                        const half_t& d1) const
+    {
+        const half_t y = type_convert<half_t>(c) * d0 + d1;
+        e              = y;
+    }
 };
 
 struct MultiplyMultiply

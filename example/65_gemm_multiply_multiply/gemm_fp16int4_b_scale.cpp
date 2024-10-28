@@ -33,7 +33,7 @@ using F32  = float;
 using Row = ck::tensor_layout::gemm::RowMajor;
 using Col = ck::tensor_layout::gemm::ColumnMajor;
 
-using A0DataType = FP16;
+using A0DataType       = FP16;
 using B0DataType       = ck::pk_i4_t;
 using B1DataType       = FP16;
 using AccDataType      = F32;
