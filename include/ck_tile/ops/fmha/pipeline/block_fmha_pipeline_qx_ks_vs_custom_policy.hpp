@@ -324,6 +324,9 @@ struct BlockFmhaPipelineQXKSVSCustomPolicy : BlockFmhaPipelineQXCustomPolicy<QLo
     LdsBufferSequence<3, 3, 3, 3> { using type = sequence<1, 2, 0,      1, 2, 0>; };
 
     template<> struct
+    LdsBufferSequence<3, 3, 3, 4> { using type = sequence<1, 2, 0,      0, 1, 2, 0>; };
+
+    template<> struct
     LdsBufferSequence<3, 3, 2, 2> { using type = sequence<1, 2,         1, 0>;};
     // clang-format on
 
