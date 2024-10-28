@@ -38,20 +38,14 @@ CK_TILE_HOST void reference_gemm_cpu(const HostTensor<ADataType>& a_m_k,
 
             for(int k = 0; k < K; ++k)
             {
-                ADataType v_a = (std::is_same_v<LayoutA, tensor_layout::gemm::RowMajor>)
-                                    ? a_element_op(a_m_k(m, k))
-                                    : a_element_op(a_m_k(k, m));
-                BDataType v_b = (std::is_same_v<LayoutB, tensor_layout::gemm::ColumnMajor>)
-                                    ? b_element_op(b_n_k(n, k))
-                                    : b_element_op(b_n_k(k, n));
+                ADataType v_a = a_element_op(a_m_k(m, k));
+                BDataType v_b = b_element_op(b_n_k(n, k));
 
                 v_acc += ck_tile::type_convert<AccDataType>(v_a) *
                          ck_tile::type_convert<AccDataType>(v_b);
             }
 
-            CDataType& c_ref = (std::is_same_v<LayoutC, tensor_layout::gemm::RowMajor>)
-                                   ? c_m_n(m, n)
-                                   : c_m_n(n, m);
+            CDataType& c_ref = c_m_n(m, n);
             c_ref            = ck_tile::type_convert<CDataType>(acc_element_op(v_acc));
         }
     };

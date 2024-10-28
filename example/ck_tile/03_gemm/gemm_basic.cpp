@@ -227,10 +227,23 @@ int main(int argc, char* argv[])
     std::vector<int> b_dimensions = std::vector<int>{N, K};
     std::vector<int> c_dimensions = std::vector<int>{M, N};
 
-    ck_tile::HostTensor<ADataType> a_host(a_dimensions);
-    ck_tile::HostTensor<BDataType> b_host(b_dimensions);
+    std::vector<int> a_strides =
+        (std::is_same_v<matrix_a_layout, ck_tile::tensor_layout::gemm::RowMajor>)
+            ? std::vector<int>{K, 1}
+            : std::vector<int>{1, M};
+    std::vector<int> b_strides =
+        (std::is_same_v<matrix_b_layout, ck_tile::tensor_layout::gemm::ColumnMajor>)
+            ? std::vector<int>{K, 1}
+            : std::vector<int>{1, N};
+    std::vector<int> c_strides =
+        (std::is_same_v<matrix_c_layout, ck_tile::tensor_layout::gemm::RowMajor>)
+            ? std::vector<int>{N, 1}
+            : std::vector<int>{1, M};
 
-    ck_tile::HostTensor<CDataType> c_host_ref(c_dimensions);
+    ck_tile::HostTensor<ADataType> a_host(a_dimensions, a_strides);
+    ck_tile::HostTensor<BDataType> b_host(b_dimensions, b_strides);
+
+    ck_tile::HostTensor<CDataType> c_host_ref(c_dimensions, c_strides);
     ck_tile::HostTensor<CDataType> c_host_dev(c_dimensions);
 
     ck_tile::FillUniformDistribution<ADataType>{-5.f, 5.f}(a_host);
@@ -289,22 +302,21 @@ int main(int argc, char* argv[])
 
     bool pass_cpu = true;
 
-    if(arg_parser.get_int("v") == 1)
-    {
-        // ToDo: Will Add the Element Op (bias) verification in the future.
-        ck_tile::reference_gemm_cpu<ADataType,
-                                    BDataType,
-                                    AccDataType,
-                                    CDataType,
-                                    matrix_a_layout,
-                                    matrix_b_layout,
-                                    matrix_c_layout>(a_host, b_host, c_host_ref);
+    // if(arg_parser.get_int("v") == 1)
+    // {
+    // ToDo: Will Add the Element Op (bias) verification in the future.
+    ck_tile::reference_gemm_cpu<ADataType,
+                                BDataType,
+                                AccDataType,
+                                CDataType,
+                                matrix_a_layout,
+                                matrix_b_layout,
+                                matrix_c_layout>(a_host, b_host, c_host_ref);
 
-        pass_cpu = ck_tile::check_err(c_host_dev, c_host_ref);
+    pass_cpu = ck_tile::check_err(c_host_dev, c_host_ref);
 
-        std::cout << "The CPU veification result is:" << (pass_cpu ? "correct" : "fail")
-                  << std::flush;
-    }
+    std::cout << "The CPU veification result is:" << (pass_cpu ? "correct" : "fail") << std::flush;
+    // }
 
     bool pass_gpu = true;
 
@@ -362,11 +374,11 @@ int main(int argc, char* argv[])
                                     matrix_c_layout>(
             a_buf, b_buf, c_gpu_buf, M, N, K, stride_a, stride_b, stride_c);
 
-        c_buf.FromDevice(c_host_gpu_ref.data());
+        c_gpu_buf.FromDevice(c_host_gpu_ref.data());
 
         pass_gpu = ck_tile::check_err(c_host_dev, c_host_gpu_ref);
 
-        std::cout << "The GPU veification result is: " << (pass_gpu ? "correct" : "fail")
+        std::cout << "The GPU verification result is: " << (pass_gpu ? "correct" : "fail")
                   << std::flush;
     }
 
