@@ -1,9 +1,11 @@
 # Layernorm2D forward
 
-This folder contains example for Layernorm2D forward using ck_tile tile-programming implementation. We now support
+This folder contains example for Layernorm2D forward using `ck_tile` tile-programming implementation.
 
-# implementatino and feature support
-standard layernorm2d forward is supported. We use welfold algorithm to update mean/variance block by block. For `N <=4096` case we can compute mean/var/normalize within one loop, we call it `one-pass`. For large N case, since the register usage is quite big to compute mean/var while keep inside register for later normalization, we first compuet mean/var block-by-block, then load input another time to compute the normalization. We call it `two-pass`.
+# Implementation and feature support
+
+## welford online algorithm
+We use welfold algorithm to update `mean`/`variance` block by block. For `N <=4096` case we can compute `mean`/`var`/`normalization` within one loop, we call it `one-pass`. For large N case, it is hard to keep `mean`/`var` inside register/LDS and then computation `normalization`, so we need to load input twice, first time to compute `mean`/`var` block-by-block, then load input another time to compute the `normalization`. We call it `two-pass`.
 
 ## mean/variance save
 In training case the mean/variance need to store out (TBD, not supported yet)
@@ -12,7 +14,7 @@ In training case the mean/variance need to store out (TBD, not supported yet)
 
 ![](misc/pnorm.png)
 
-since [prenorm/postnorm](https://arxiv.org/pdf/1906.01787) is quite useful in LLM blocks, this example also support it. Note that prenorm/postnorm always need to fuse a `shortcut` before the actual layernorm computation, the only difference is weather store the added element to global, where prenorm need store out. You can use `-fadd=1` to test prenorm(pre-add+store), or `-fadd=2` to test postnorm(pre-add)
+since [prenorm/postnorm](https://arxiv.org/pdf/1906.01787) is quite common in LLM blocks, this example also support this feature. Note that `prenorm`/`postnorm` always need to fuse a `shortcut` before the actual layernorm computation, the only difference is whether to store the added element to global, `prenorm` need this. You can use `-fadd=1` to test `prenorm`(pre-add+store), or `-fadd=2` to test `postnorm`(pre-add)
 
 ## build
 ```
