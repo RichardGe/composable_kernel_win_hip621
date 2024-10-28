@@ -62,7 +62,7 @@ static constexpr auto GemmSpec = ck::tensor_operation::device::GemmSpecializatio
 
 // static constexpr ck::index_t Scale_Block_M = 128;
 static constexpr ck::index_t Scale_Block_N = 1;
-static constexpr ck::index_t Scale_Block_K = 128;
+static constexpr ck::index_t Scale_Block_K = 64;
 
 using DeviceOpInstance = ck::tensor_operation::device::DeviceGemmMultiD_BScale_Xdl_CShuffle_V3
     // clang-format off
@@ -70,18 +70,18 @@ using DeviceOpInstance = ck::tensor_operation::device::DeviceGemmMultiD_BScale_X
           A0DataType, B0DataType, B1DataType, DsDataType, EDataType, AccDataType, CShuffleDataType, 
           AElementOp,  BElementOp, CDEElementOp, GemmSpec,
           256, Scale_Block_N, Scale_Block_K,
-          128, 128, 128,
+          128, 128, 64,
         //   16, 16,
           8, 8,
           16,   16,
           4,    4,
-        //   S<8, 32, 1>, S<1, 0, 2>, S<1, 0, 2>, 2, 16, 16, 0,
-        //   S<8, 32, 1>, S<1, 0, 2>, S<1, 0, 2>, 2, 16, 16, 0,
-          S<16, 16, 1>, S<1, 0, 2>, S<1, 0, 2>, 2, 8, 8, 0,
-          S<16, 16, 1>, S<1, 0, 2>, S<1, 0, 2>, 2, 8, 8, 0,
+          S<8, 32, 1>, S<1, 0, 2>, S<1, 0, 2>, 2, 8, 8, 0,
+          S<8, 32, 1>, S<1, 0, 2>, S<1, 0, 2>, 2, 8, 8, 0,
+        //   S<16, 16, 1>, S<1, 0, 2>, S<1, 0, 2>, 2, 8, 8, 0,
+        //   S<16, 16, 1>, S<1, 0, 2>, S<1, 0, 2>, 2, 8, 8, 0,
           1,    2,  S<1, 32, 1, 8>,  S<8, 8, 1>,
         //   ck::BlockGemmPipelineScheduler::Intrawave, ck::BlockGemmPipelineVersion::v3, FP8>;
-          ck::BlockGemmPipelineScheduler::Intrawave, ck::BlockGemmPipelineVersion::v3>;
+          ck::BlockGemmPipelineScheduler::Intrawave, ck::BlockGemmPipelineVersion::v1>;
 // clang-format on
 
 template <typename IntType>

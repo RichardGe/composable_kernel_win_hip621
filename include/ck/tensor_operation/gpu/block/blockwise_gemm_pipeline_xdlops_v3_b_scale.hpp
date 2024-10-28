@@ -346,15 +346,20 @@ struct BlockwiseGemmXdlops_pipeline_v3_b_scale<BlockGemmPipelineScheduler::Intra
         //                         make_tuple(I0, I0),
         //                         a_scale_thread_buf);
 
-        b_scale_thread_copy.Run(b_scale_grid_desc,
-                                b_scale_grid_buf,
-                                b_scale_thread_desc,
-                                make_tuple(I0, I0),
-                                b_scale_thread_buf);
+        static_for<0, NRepeat, 1>{}([&](auto n0) {
+            b_scale_thread_copy.Run(b_scale_grid_desc,
+                                    b_scale_grid_buf,
+                                    b_scale_thread_desc,
+                                    make_tuple(n0, I0),
+                                    b_scale_thread_buf);
 
-        // a_scale_thread_copy.MoveSrcSliceWindow(a_scale_grid_desc, a_scale_thread_copy_step);
-        b_scale_thread_copy.MoveSrcSliceWindow(b_scale_grid_desc, b_scale_thread_copy_step);
-        // Local prefill 1
+            b_scale_thread_copy.MoveSrcSliceWindow(b_scale_grid_desc,
+                                                   b_scale_thread_copy_step.At(Number<0>{}));
+        });
+
+        b_scale_thread_copy.MoveSrcSliceWindow(b_scale_grid_desc,
+                                               b_scale_thread_copy_step.At(Number<1>{}));
+        
         a_blockwise_copy.RunWrite(a_block_desc, a_block_buf);
         b_blockwise_copy.RunWrite(b_block_desc, b_block_buf);
 
@@ -470,15 +475,23 @@ struct BlockwiseGemmXdlops_pipeline_v3_b_scale<BlockGemmPipelineScheduler::Intra
                 //                         make_tuple(I0, I0),
                 //                         a_scale_thread_buf);
 
-                b_scale_thread_copy.Run(b_scale_grid_desc,
-                                        b_scale_grid_buf,
-                                        b_scale_thread_desc,
-                                        make_tuple(I0, I0),
-                                        b_scale_thread_buf);
+                static_for<0, NRepeat, 1>{}([&](auto n0) {
+                    b_scale_thread_copy.Run(b_scale_grid_desc,
+                                            b_scale_grid_buf,
+                                            b_scale_thread_desc,
+                                            make_tuple(n0, I0),
+                                            b_scale_thread_buf);
+
+                    b_scale_thread_copy.MoveSrcSliceWindow(
+                        b_scale_grid_desc, b_scale_thread_copy_step.At(Number<0>{}));
+                });
+
+                b_scale_thread_copy.MoveSrcSliceWindow(b_scale_grid_desc,
+                                                       b_scale_thread_copy_step.At(Number<1>{}));
 
                 // a_scale_thread_copy.MoveSrcSliceWindow(a_scale_grid_desc,
                 // a_scale_thread_copy_step);
-                b_scale_thread_copy.MoveSrcSliceWindow(b_scale_grid_desc, b_scale_thread_copy_step);
+                
                 HotLoopScheduler();
                 __builtin_amdgcn_sched_barrier(0);
                 i += 1;
@@ -517,7 +530,7 @@ struct BlockwiseGemmXdlops_pipeline_v3_b_scale<BlockGemmPipelineScheduler::Intra
                         c_thread_buf(Number<c_offset>{}) +=
                             c_thread_buf_per_scale[Number<t>{}] *
                             // type_convert<AccDataType>(a_scale_thread_buf[I0]) *
-                            type_convert<AccDataType>(b_scale_thread_buf[I0]);
+                            type_convert<AccDataType>(b_scale_thread_buf[n0]);
                     });
                 });
             });

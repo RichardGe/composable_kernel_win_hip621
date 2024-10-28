@@ -1383,21 +1383,28 @@ struct GridwiseGemmMultiD_BScale_xdl_cshuffle_v3
         //         a_scale_grid_desc_am_ak, make_multi_index(block_m_id * MPerBlock / ScaleBlockM,
         //         0));
 
+        constexpr index_t NWaves = NPerBlock / (NXdlPerWave * NPerXdl);
+
+        auto b_thread_offset =
+            get_thread_local_1d_id() % NPerXdl + (get_thread_local_1d_id() / 64) % NWaves * NPerXdl;
+
         auto b_scale_thread_copy =
             ThreadwiseTensorSliceTransfer_v2<BScaleType,
                                              BScaleType,
                                              decltype(b_scale_grid_desc_bn_ak),
                                              decltype(b_scale_thread_desc),
-                                             Sequence<ScaleSliceSizeN, ScaleSliceSizeK>,
+                                             Sequence<1, ScaleSliceSizeK>,
                                              Sequence<0, 1>,
                                              1,
                                              1,
                                              1,
                                              false>(
-                b_scale_grid_desc_bn_ak, make_multi_index(block_n_id * NPerBlock / ScaleBlockN, 0));
+                b_scale_grid_desc_bn_ak,
+                make_multi_index(block_n_id * NPerBlock / ScaleBlockN + b_thread_offset, 0));
 
         // constexpr auto a_scale_thread_slice_copy_step = make_multi_index(0, 1);
-        constexpr auto b_scale_thread_slice_copy_step = make_multi_index(0, 1);
+        constexpr auto b_scale_thread_slice_copy_step =
+            make_tuple(make_multi_index(NWaves * NPerXdl, 0), make_multi_index(-NPerBlock, 1));
 
         const index_t num_k_block_per_scale = ScaleBlockK / KPerBlock;
 
