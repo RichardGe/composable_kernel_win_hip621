@@ -11,17 +11,6 @@
 using S = ck_tile::stream_config;
 using A = layernorm2d_bwd_args;
 
-template <typename DataType_,
-          ck_tile::index_t Repeat_M_,         // each thread repeat along M
-          ck_tile::index_t ThreadPerBlock_M_, // num threads along M
-          ck_tile::index_t ThreadPerBlock_N_, // num threads along N
-          bool kPadN_>
-using trait_ = layernorm2d_bwd_traits_<DataType_,
-                                       Repeat_M_,
-                                       ThreadPerBlock_M_,
-                                       ThreadPerBlock_N_,
-                                       kPadN_>;
-
 template <typename Traits_>
 float layernorm2d_bwd_(const S& s, A a)
 {

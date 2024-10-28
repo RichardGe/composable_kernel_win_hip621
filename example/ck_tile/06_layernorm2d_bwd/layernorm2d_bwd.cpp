@@ -64,21 +64,27 @@ bool run(const ck_tile::ArgParser& arg_parser)
     using ComputeDataType = typename TypeConfig::ComputeDataType;
 
     // host verify
+    ck_tile::HostTensor<XDataType> x_host({m, n}, {stride, 1});
     ck_tile::HostTensor<YDataType> dy_host({m, n}, {stride, 1});
     ck_tile::HostTensor<MeanDataType> mean_host({m});
     ck_tile::HostTensor<InvStdDataType> invStd_host({m});
 
-    ck_tile::HostTensor<GammaDataType> dgamma_host_dev({n});
-    ck_tile::HostTensor<BetaDataType> dbeta_host_dev({n});
-    ck_tile::HostTensor<GammaDataType> dgamma_host_ref({n});
-    ck_tile::HostTensor<BetaDataType> dbeta_host_ref({n});
+    ck_tile::index_t blockM = layernorm2d_bwd_block_m<XDataType>();
+    ck_tile::index_t reduce_m = (m + blockM - 1) / blockM;
+    ck_tile::HostTensor<GammaDataType> dgamma_host_dev({reduce_m, n});
+    ck_tile::HostTensor<BetaDataType> dbeta_host_dev({reduce_m, n});
+    ck_tile::HostTensor<GammaDataType> dgamma_host_ref({reduce_m, n});
+    ck_tile::HostTensor<BetaDataType> dbeta_host_ref({reduce_m, n});
 
 
+    // ck_tile::FillMonotonicSeq<YDataType>{}(dy_host);
     ck_tile::FillUniformDistribution<YDataType>{-.5f, .5f}(dy_host);
-    // ck_tile::FillUniformDistribution<MeanDataType>{-.5f, .5f}(mean_host);
-    ck_tile::FillMonotonicSeq<MeanDataType>{}(mean_host);
+    ck_tile::FillUniformDistribution<MeanDataType>{-.5f, .5f}(mean_host);
+    ck_tile::FillUniformDistribution<XDataType>{-.5f, .5f}(x_host);
+    // ck_tile::FillMonotonicSeq<MeanDataType>{}(mean_host);
     ck_tile::FillUniformDistribution<InvStdDataType>{-.5f, .5f}(invStd_host);
 
+    ck_tile::DeviceMem x_buf(x_host.get_element_space_size_in_bytes());
     ck_tile::DeviceMem dy_buf(dy_host.get_element_space_size_in_bytes());
     ck_tile::DeviceMem mean_buf(mean_host.get_element_space_size_in_bytes());
     ck_tile::DeviceMem invStd_buf(invStd_host.get_element_space_size_in_bytes());
@@ -86,6 +92,7 @@ bool run(const ck_tile::ArgParser& arg_parser)
     ck_tile::DeviceMem dgamma_buf(dgamma_host_dev.get_element_space_size_in_bytes());
     ck_tile::DeviceMem dbeta_buf(dbeta_host_dev.get_element_space_size_in_bytes());
 
+    x_buf.ToDevice(x_host.data());
     dy_buf.ToDevice(dy_host.data());
     mean_buf.ToDevice(mean_host.data());
     invStd_buf.ToDevice(invStd_host.data());
@@ -94,13 +101,12 @@ bool run(const ck_tile::ArgParser& arg_parser)
               << " m:" << m << ", n:" << n << ", stride:" << stride << std::flush;
 
     layernorm2d_bwd_traits traits{data_type};
-
-    layernorm2d_bwd_args args{dy_buf.GetDeviceBuffer(),
+    layernorm2d_bwd_args args{x_buf.GetDeviceBuffer(),
+                              dy_buf.GetDeviceBuffer(),
                               mean_buf.GetDeviceBuffer(),
                               invStd_buf.GetDeviceBuffer(),
                               dgamma_buf.GetDeviceBuffer(),
                               dbeta_buf.GetDeviceBuffer(),
-                              nullptr,
                               m,
                               n,
                               stride};
@@ -118,41 +124,24 @@ bool run(const ck_tile::ArgParser& arg_parser)
 
     if(do_validation)
     {
-    //     // reference
-    //     ck_tile::reference_layernorm2d_bwd<XDataType,
-    //                                        GammaDataType,
-    //                                        BetaDataType,
-    //                                        ComputeDataType,
-    //                                        YDataType,
-    //                                        MeanDataType,
-    //                                        InvStdDataType>(
-    //         x_host, gamma_host, beta_host, y_host_ref, mean_host_ref, invStd_host_ref, epsilon);
+        // reference
+        ck_tile::reference_layernorm2d_bwd_gamma_part<XDataType,
+                                                      GammaDataType,
+                                                      BetaDataType,
+                                                      ComputeDataType,
+                                                      YDataType,
+                                                      MeanDataType,
+                                                      InvStdDataType>(
+            x_host, dy_host, mean_host, invStd_host, dgamma_host_ref, dbeta_host_ref);
 
-    //     y_buf.FromDevice(y_host_dev.data());
+        dgamma_buf.FromDevice(dgamma_host_dev.data());
+        dbeta_buf.FromDevice(dbeta_host_dev.data());
 
-    //     auto [rtol, atol] = get_elimit<DataType>();
-    //     if(stride == n)
-    //     {
-    //         pass = ck_tile::check_err(
-    //             y_host_dev, y_host_ref, std::string("OUT Error: Incorrect results!"), rtol, atol);
-    //     }
-    //     else
-    //     {
-    //         for(int i_r = 0; i_r < m; i_r++)
-    //         {
-    //             std::vector<YDataType> y_host_dev_row(y_host_dev.begin() + i_r * stride,
-    //                                                   y_host_dev.begin() + i_r * stride + n);
-    //             std::vector<YDataType> y_host_ref_row(y_host_ref.begin() + i_r * stride,
-    //                                                   y_host_ref.begin() + i_r * stride + n);
-    //             pass &= ck_tile::check_err(y_host_dev_row,
-    //                                        y_host_ref_row,
-    //                                        std::string("OUT[") + std::to_string(i_r) +
-    //                                            std::string("] Error: Incorrect results!"),
-    //                                        rtol,
-    //                                        atol);
-    //         }
-    //     }
-
+        auto [rtol, atol] = get_elimit<DataType>();
+        pass = ck_tile::check_err(
+            dgamma_host_dev, dgamma_host_ref, std::string("GAMMA OUT Error: Incorrect results!"), rtol, atol);
+        pass &= ck_tile::check_err(
+            dbeta_host_dev, dbeta_host_ref, std::string("BETA OUT Error: Incorrect results!"), rtol, atol);
         std::cout << ", valid:" << (pass ? "y" : "n") << std::flush << std::endl;
     }
 

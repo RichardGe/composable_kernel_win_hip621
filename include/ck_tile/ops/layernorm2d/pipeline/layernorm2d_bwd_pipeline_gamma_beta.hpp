@@ -24,7 +24,7 @@ struct Layernorm2dBwdGammaBetaPipeline
     using MeanDataType    = ck_tile::remove_cvref_t<typename Problem::MeanDataType>;
     using InvStdDataType  = ck_tile::remove_cvref_t<typename Problem::InvStdDataType>;
 
-    static constexpr bool kPadM              = false; // TODO - BlockLayernorm2dBwdGammaBetaProblem::kPadM
+    static constexpr bool kPadM              = false;
     static constexpr bool kPadN              = Problem::kPadN;
 
     static constexpr const char* name = []() {
@@ -35,31 +35,13 @@ struct Layernorm2dBwdGammaBetaPipeline
     {
         return Policy::template GetSmemSize<Problem>();
     }
-    // template <typename DumpTensor_>
-    // CK_TILE_DEVICE void dump(const DumpTensor_& x) const 
-    // {
-    //     constexpr auto I0 = number<0>{};
-    //     constexpr auto I1 = number<1>{};
-
-    //     constexpr auto spans = DumpTensor_::get_distributed_spans();
-
-    //     sweep_tile_span(spans[I1], [&](auto i1) {
-    //         sweep_tile_span(spans[I0], [&](auto i0) {
-    //             constexpr auto in_dstr_idx  = make_tuple(i0, i1);
-    //             auto v = ck_tile::type_convert<float>(x[in_dstr_idx]);
-    //             index_t tid =
-    //                 (threadIdx.z * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
-    //             printf("%d %f\n", tid, v);
-                
-    //         });
-    //     });
-    // }
-    template <typename DYWindow,
+    template <typename XWindow,
               typename MeanWindow,
               typename InvStdWindow,
               typename DGammaWindow,
               typename DBetaWindow>
-    CK_TILE_DEVICE auto operator()(const DYWindow& dy_window_,
+    CK_TILE_DEVICE auto operator()(const XWindow& x_window_,
+                                   const XWindow& dy_window_,
                                    const MeanWindow& mean_window_,
                                    const InvStdWindow& inv_std_window_,
                                    DGammaWindow& gamma_window_,
@@ -67,52 +49,43 @@ struct Layernorm2dBwdGammaBetaPipeline
                                    ck_tile::index_t row_size,
                                    void* smem) const
     {
-        const auto dy_window = make_tile_window(dy_window_, 
-            Policy::template MakeDyBlockTileDistribution<Problem>());
-        const auto mean_window = make_tile_window(
-            mean_window_, Policy::template MakeMeanBlockTileDistribution<Problem>());
-        const auto inv_std_window = make_tile_window(
-            inv_std_window_, Policy::template MakeMeanBlockTileDistribution<Problem>());
-        // const auto gamma_window = make_tile_window(
-        //     gamma_window_, Policy::template MakeGammaBetaBlockTileDistribution<Problem>());
-        // const auto beta_window = make_tile_window(
-        //     beta_window_, Policy::template MakeGammaBetaBlockTileDistribution<Problem>());
+        auto gamma_beta_dist = Policy::template MakeGammaBetaBlockTileDistribution<Problem>();
+        auto mean_dist = Policy::template MakeMeanBlockTileDistribution<Problem>();
+        auto x_dist = Policy::template MakeXBlockTileDistribution<Problem>();
 
-        const auto dy  = load_tile(dy_window);
-        const auto mean = load_tile(mean_window);
-        const auto inv_std = load_tile(inv_std_window);
+        const auto x_window = make_tile_window(x_window_, x_dist);
+        const auto dy_window = make_tile_window(dy_window_, x_dist);
+        const auto mean_window = make_tile_window(mean_window_, mean_dist);
+        const auto inv_std_window = make_tile_window(inv_std_window_, mean_dist);
+        const auto x_tile  = load_tile(x_window);
+        const auto dy_tile  = load_tile(dy_window);
+        const auto mean_tile = load_tile(mean_window);
+        const auto inv_std_tile = load_tile(inv_std_window);
         
-        // auto y = make_static_distributed_tensor<YDataType>(dy.get_tile_distribution());
-        sweep_tile(mean, [&](auto idx) {
+        auto gamma_window = make_tile_window(gamma_window_, gamma_beta_dist);
+        auto beta_window = make_tile_window(beta_window_, gamma_beta_dist);
+        auto gamma_tile = make_static_distributed_tensor<GammaDataType>(gamma_beta_dist);
+        auto beta_tile = make_static_distributed_tensor<BetaDataType>(gamma_beta_dist);
+        sweep_tile(x_tile, [&](auto idx) {
             constexpr auto i_idx = make_tuple(idx[number<0>{}]);
-            // constexpr auto j_idx = make_tuple(idx[number<1>{}]);
-
-            index_t tid = (threadIdx.y * blockDim.x) + threadIdx.x;
-            const auto m = type_convert<float>(mean[i_idx]);
-            if(blockIdx.x == 0 && blockIdx.y == 0)
-                printf("%d %f\n", tid, m);
-                
+            constexpr auto j_idx = make_tuple(idx[number<1>{}]);
+            constexpr auto gb_idx = make_tuple(number<0>{}, idx[number<1>{}]);
+            auto &gamma = gamma_tile(gb_idx);
+            auto &beta = beta_tile(gb_idx);
+            const auto x = type_convert<ComputeDataType>(x_tile[idx]);
+            const auto dy = type_convert<ComputeDataType>(dy_tile[idx]);
+            const auto mean = type_convert<ComputeDataType>(mean_tile[i_idx]);
+            const auto inv_std = type_convert<ComputeDataType>(inv_std_tile[i_idx]);
+            beta += type_convert<BetaDataType>(dy);
+            gamma += type_convert<GammaDataType>(dy * (x - mean) * inv_std);
+            // index_t tid = (threadIdx.y * blockDim.x) + threadIdx.x;
+            // if(blockIdx.x < 3 && blockIdx.y == 0 && tid < 3) {
+            //     printf("bid %d tid %d count %d gb %f %f\n",blockIdx.x, tid, count, type_convert<float>(g), type_convert<float>(b));
+            // }
         });
-        // dump(dy);
-        // dump(mean);
-        // dump(inv_std);
-        *reinterpret_cast<char *>(smem) = row_size;
+        store_tile(gamma_window, gamma_tile);
+        store_tile(beta_window, beta_tile);
 
-        // layernorm computation
-        // auto y = make_static_distributed_tensor<YDataType>(x.get_tile_distribution());
-        // sweep_tile(y, [&, mean_ = mean](auto idx) {
-        //     constexpr auto i_idx = make_tuple(idx[number<0>{}]);
-        //     constexpr auto j_idx = make_tuple(idx[number<1>{}]);
-
-        //     const auto gamma_ = type_convert<ComputeDataType>(gamma[j_idx]);
-        //     const auto beta_  = type_convert<ComputeDataType>(beta[j_idx]);
-
-        //     const auto x_ = type_convert<ComputeDataType>(x[idx]);
-        //     auto y_       = (x_ - mean_[i_idx]) * inv_std[i_idx] * gamma_ + beta_;
-
-        //     y(idx) = type_convert<YDataType>(y_);
-        // });
-        // store_tile(y_window, y);
     }
 };
 } // namespace ck_tile

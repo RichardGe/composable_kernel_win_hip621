@@ -101,6 +101,17 @@ struct layernorm2d_bwd_traits_
     static constexpr bool kPadN           = kPadN_;
 };
 
+template <typename DataType_,
+          ck_tile::index_t Repeat_M_,         // each thread repeat along M
+          ck_tile::index_t ThreadPerBlock_M_, // num threads along M
+          ck_tile::index_t ThreadPerBlock_N_, // num threads along N
+          bool kPadN_>
+using trait_ = layernorm2d_bwd_traits_<DataType_,
+                                       Repeat_M_,
+                                       ThreadPerBlock_M_,
+                                       ThreadPerBlock_N_,
+                                       kPadN_>;
+
 template <typename Traits_>
 float layernorm2d_bwd_(const ck_tile::stream_config& s, layernorm2d_bwd_args a);
 
@@ -108,6 +119,24 @@ float layernorm2d_bwd_(const ck_tile::stream_config& s, layernorm2d_bwd_args a);
 struct layernorm2d_bwd_traits
 {
     std::string data_type;
+    
+};
+
+template <typename data_type>
+struct layernorm2d_bwd_b16_
+{
+    /* data */
+    using Trait = trait_<data_type,   1,  1,  64,  true>;
+    float operator() (layernorm2d_bwd_traits /*t*/,
+                      layernorm2d_bwd_args a,
+                      const ck_tile::stream_config& s) {
+        return layernorm2d_bwd_<Trait>(s, a);
+    }
+};
+
+template <typename data_type>
+ck_tile::index_t layernorm2d_bwd_block_m() {
+    return layernorm2d_bwd_b16_<data_type>::Trait::Block_M;
 };
 
 float layernorm2d_bwd(layernorm2d_bwd_traits, layernorm2d_bwd_args, const ck_tile::stream_config&);

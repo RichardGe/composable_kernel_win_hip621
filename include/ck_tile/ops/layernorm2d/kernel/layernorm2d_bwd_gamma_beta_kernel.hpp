@@ -11,13 +11,13 @@ namespace ck_tile {
 // host side args
 struct Layernorm2dBwdGammaBetaHostArgs
 {
+    const void* p_x;
     const void* p_dY;
     const void* p_mean;
     const void* p_invStd;
 
     void* p_dGamma;
     void* p_dBeta;
-    void* p_yMul;
 
     index_t m;
     index_t n;
@@ -51,13 +51,13 @@ struct Layernorm2dBwdGammaBeta
 
     struct Kargs
     {
+        const void* p_x;
         const void* p_dY;
         const void* p_mean;
         const void* p_invStd;
 
         void* p_dGamma;
         void* p_dBeta;
-        void* p_yMul;
 
         index_t m;
         index_t n;
@@ -67,12 +67,12 @@ struct Layernorm2dBwdGammaBeta
 
     CK_TILE_HOST static constexpr Kargs MakeKargs(const Hargs& hargs)
     {
-        return Kargs{hargs.p_dY,
+        return Kargs{hargs.p_x,
+                     hargs.p_dY,
                      hargs.p_mean,
                      hargs.p_invStd,
                      hargs.p_dGamma,
                      hargs.p_dBeta,
-                     hargs.p_yMul,
                      hargs.m,
                      hargs.n,
                      hargs.stride};
@@ -119,7 +119,22 @@ struct Layernorm2dBwdGammaBeta
 
     CK_TILE_DEVICE void operator()(Kargs kargs) const
     {
-        const auto iM = get_block_id() * Block_M;
+        const auto block_id = get_block_id();
+        const auto iM = block_id * Block_M;
+
+        const auto x_window = [&]() {
+            const auto tmp_ = make_naive_tensor_view<address_space_enum::global>(
+                static_cast<const XDataType*>(kargs.p_x),
+                make_tuple(kargs.m, kargs.n),
+                make_tuple(kargs.stride, 1));
+
+            // NOTE: we don't do any pad in this kernel for loading, assume that inside kernel will
+            // check the max count dynamically
+            const auto tmp2_ = pad_tensor_view(
+                tmp_, make_tuple(number<Block_M>{}, number<Block_N>{}), sequence<false, false>{});
+            return make_tile_window(
+                tmp2_, make_tuple(number<Block_M>{}, number<Block_N>{}), {iM, 0});
+        }();
 
         const auto dy_window = [&]() {
             const auto tmp_ = make_naive_tensor_view<address_space_enum::global>(
@@ -134,7 +149,7 @@ struct Layernorm2dBwdGammaBeta
             return make_tile_window(
                 tmp2_, make_tuple(number<Block_M>{}, number<Block_N>{}), {iM, 0});
         }();
-
+        
         const auto mean_window = [&]() {
             const auto tmp_ = make_naive_tensor_view<address_space_enum::global>(
                 static_cast<const MeanDataType*>(kargs.p_mean),
@@ -144,7 +159,7 @@ struct Layernorm2dBwdGammaBeta
             const auto tmp2_ =
                 pad_tensor_view(tmp_, make_tuple(number<Block_M>{}), sequence<false>{});
 
-            return make_tile_window(tmp2_, make_tuple(number<Block_M>{}), {0});
+            return make_tile_window(tmp2_, make_tuple(number<Block_M>{}), {iM});
         }();
 
         const auto invstd_window = [&]() {
@@ -156,36 +171,37 @@ struct Layernorm2dBwdGammaBeta
             const auto tmp2_ =
                 pad_tensor_view(tmp_, make_tuple(number<Block_M>{}), sequence<false>{});
 
-            return make_tile_window(tmp2_, make_tuple(number<Block_M>{}), {0});
+            return make_tile_window(tmp2_, make_tuple(number<Block_M>{}), {iM});
         }();
 
-        const auto dgamma_window = [&]() {
+        auto dgamma_window = [&]() {
             const auto tmp_ = make_naive_tensor_view<address_space_enum::global>(
-                static_cast<const GammaDataType*>(kargs.p_dGamma),
-                make_tuple(kargs.n),
-                make_tuple(1));
+                static_cast<GammaDataType*>(kargs.p_dGamma),
+                make_tuple(gridDim.x, kargs.n),
+                make_tuple(kargs.n, 1));
 
             const auto tmp2_ =
-                pad_tensor_view(tmp_, make_tuple(number<Block_N>{}), sequence<false>{});
+                pad_tensor_view(tmp_, make_tuple(number<1>{}, number<Block_N>{}), sequence<false, kPadN>{});
 
-            return make_tile_window(tmp2_, make_tuple(number<Block_N>{}), {0});
+            return make_tile_window(tmp2_, make_tuple(number<1>{}, number<Block_N>{}), {block_id, 0});
         }();
 
-        const auto dbeta_window = [&]() {
+        auto dbeta_window = [&]() {
             const auto tmp_ = make_naive_tensor_view<address_space_enum::global>(
-                static_cast<const BetaDataType*>(kargs.p_dBeta),
-                make_tuple(kargs.n),
-                make_tuple(1));
+                static_cast<BetaDataType*>(kargs.p_dBeta),
+                make_tuple(gridDim.x, kargs.n),
+                make_tuple(kargs.n, 1));
 
             const auto tmp2_ =
-                pad_tensor_view(tmp_, make_tuple(number<Block_N>{}), sequence<false>{});
-            return make_tile_window(tmp2_, make_tuple(number<Block_M>{}, number<Block_N>{}), {0});
+                pad_tensor_view(tmp_, make_tuple(number<1>{}, number<Block_N>{}), sequence<false, kPadN>{});
+            return make_tile_window(tmp2_, make_tuple(number<1>{}, number<Block_N>{}), {block_id, 0});
         }();
 
 
         __shared__ char smem[GetSmemSize()];
 
-        Pipeline{}(dy_window,
+        Pipeline{}(x_window,
+                   dy_window,
                    mean_window,
                    invstd_window,
                    dgamma_window,
