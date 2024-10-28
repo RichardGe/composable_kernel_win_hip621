@@ -32,10 +32,7 @@ auto create_args(int argc, char* argv[])
         .insert("kname", "1", "print kernel name or not")
         .insert("prec_i", "fp16", "input precision")
         .insert("prec_o", "auto", "output precision, set auto will be the same as input")
-        .insert(
-            "fadd",
-            "0",
-            "fused-add, 0:no fused add, 1:fused-prenorm(preadd+store), 2:fused-postnorm(preadd)")
+        .insert("fadd", "0", "fused-add, 0:no fused add, 1:preadd+store, 2:preadd only")
         .insert("fsweep", "0", "fused-sweep")
         .insert("warmup", "5", "cold iter")
         .insert("repeat", "20", "hot iter");

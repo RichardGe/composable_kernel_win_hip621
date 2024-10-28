@@ -10,12 +10,10 @@ namespace ck_tile {
 enum class Layernorm2dFusedAddEnum
 {
     NO_ADD = 0,
-    // fused add before layernorm (prenorm), and store result to global
+    // fused add before layernorm and store result to global
     PRE_ADD_STORE = 1,
-    PRE_NORM_ADD  = PRE_ADD_STORE,
-    // fused add before layernorm (postnorm), but not store result
-    PRE_ADD       = 2,
-    POST_NORM_ADD = PRE_ADD,
+    // fused add before layernorm, but not store result
+    PRE_ADD = 2,
 };
 
 // clang-format off

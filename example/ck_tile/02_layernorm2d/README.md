@@ -14,7 +14,7 @@ In training case the mean/variance need to store out (TBD, not supported yet)
 
 ![](misc/pnorm.png)
 
-since [prenorm/postnorm](https://arxiv.org/pdf/1906.01787) is quite common in LLM blocks, this example also support this feature. Note that `prenorm`/`postnorm` always need to fuse a `shortcut` before the actual layernorm computation, the only difference is whether to store the added element to global, `prenorm` need this. You can use `-fadd=1` to test `prenorm`(pre-add+store), or `-fadd=2` to test `postnorm`(pre-add)
+since [prenorm/postnorm](https://arxiv.org/pdf/1906.01787) is quite common in LLM blocks, this example boosts this feature by kernel fusion. Note that `prenorm`/`postnorm` always need to do elementwise-add a `shortcut` before the actual layernorm computation, and optionally store out the result to global. You can use `-fadd=1` to test `pre-add+store`, or `-fadd=2` to test `pre-add` without store out.
 
 ## build
 ```
