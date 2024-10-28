@@ -127,7 +127,7 @@ struct Layernorm2dFwd
 
     CK_TILE_HOST static std::string GetName()
     {
-// clang-format off
+        // clang-format off
         #define _SS_  std::string
         #define _TS_  std::to_string
         using S_ = typename Problem::BlockShape;
