@@ -140,6 +140,8 @@ float add_rmsnorm2d_rdquant_fwd(add_rmsnorm2d_rdquant_fwd_traits t,
 {
 
     float r = -1;
+    // Only support instance of save_x == true for now
+    assert(t.save_x);
     if(t.data_type.compare("fp16") == 0)
     {
         return add_rmsnorm2d_rdquant_fwd_b16_<ck_tile::fp16_t>(t, a, s);

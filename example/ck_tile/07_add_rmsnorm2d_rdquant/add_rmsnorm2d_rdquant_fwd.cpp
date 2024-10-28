@@ -35,7 +35,7 @@ auto create_args(int argc, char* argv[])
         .insert("n", "4096", "n dimension")
         .insert("stride", "-1", "stride per row, if -1 then equal to n")
         .insert("e", "1e-5", "epsilon")
-        .insert("save_rms", "0", "save rms(invrms) or not. set to 1 in training case")
+        .insert("save_x", "1", "save rms(invrms) or not. set to 1 in training case")
         .insert("v", "1", "cpu validation or not")
         .insert("kname", "1", "print kernel name or not")
         .insert("prec", "fp16", "precision")
@@ -257,20 +257,20 @@ int main(int argc, char* argv[])
         return -1;
 
     const std::string data_type = arg_parser.get_str("prec");
-    int save_rms                = arg_parser.get_int("save_rms");
-    if(data_type == "fp16" && save_rms)
+    int save_x                  = arg_parser.get_int("save_x");
+    if(data_type == "fp16" && save_x)
     {
         return run<ck_tile::half_t, true>(arg_parser) ? 0 : -2;
     }
-    else if(data_type == "fp16" && !save_rms)
+    else if(data_type == "fp16" && !save_x)
     {
         return run<ck_tile::half_t, false>(arg_parser) ? 0 : -2;
     }
-    else if(data_type == "bf16" && save_rms)
+    else if(data_type == "bf16" && save_x)
     {
         return run<ck_tile::bf16_t, true>(arg_parser) ? 0 : -2;
     }
-    else if(data_type == "bf16" && !save_rms)
+    else if(data_type == "bf16" && !save_x)
     {
         return run<ck_tile::bf16_t, true>(arg_parser) ? 0 : -2;
     }

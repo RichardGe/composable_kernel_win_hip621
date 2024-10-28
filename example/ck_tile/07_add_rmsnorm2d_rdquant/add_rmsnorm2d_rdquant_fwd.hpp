@@ -115,7 +115,7 @@ float add_rmsnorm2d_rdquant_fwd_(const ck_tile::stream_config& s, add_rmsnorm2d_
 struct add_rmsnorm2d_rdquant_fwd_traits
 {
     std::string data_type;
-    bool save_rms;
+    bool save_x;
 };
 
 float add_rmsnorm2d_rdquant_fwd(add_rmsnorm2d_rdquant_fwd_traits,
