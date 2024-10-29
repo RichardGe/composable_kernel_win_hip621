@@ -27,5 +27,6 @@
 #include "ck_tile/host/reference/reference_rmsnorm2d_fwd.hpp"
 #include "ck_tile/host/reference/reference_rowwise_quantization2d.hpp"
 #include "ck_tile/host/reference/reference_softmax.hpp"
+#include "ck_tile/host/reference/reference_topk.hpp"
 #include "ck_tile/host/stream_config.hpp"
 #include "ck_tile/host/timer.hpp"

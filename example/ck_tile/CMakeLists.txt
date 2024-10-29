@@ -9,3 +9,5 @@ add_subdirectory(04_img2col)
 add_subdirectory(05_reduce)
 add_subdirectory(06_rmsnorm2d)
 add_subdirectory(07_add_rmsnorm2d_rdquant)
+add_subdirectory(09_topk_softmax)
+
