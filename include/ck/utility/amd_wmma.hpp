@@ -9,7 +9,7 @@
 // TODO: Add arch limitation
 namespace ck {
 
-#if defined(__gfx1100__) || defined(__gfx1101__) || defined(__gfx1102__) || defined(__gfx1103__)
+#if defined(__gfx1100__) || defined(__gfx1101__) || defined(__gfx1102__) || defined(__gfx1103__) || defined(__gfx1150__) || defined(__gfx1151__)
 #define __gfx11__
 #endif
 /********************************WAVE32 MODE***********************************************/

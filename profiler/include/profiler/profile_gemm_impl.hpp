@@ -6,7 +6,17 @@
 #include <iomanip>
 #include <iostream>
 #include <typeinfo>
-#include <unistd.h>
+
+
+#ifdef _WIN32
+    // Windows-specific includes
+    #include <windows.h>
+#else
+    // Unix/Linux-specific includes
+    #include <unistd.h>
+#endif
+
+
 
 #include "ck/ck.hpp"
 #include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
@@ -213,7 +223,7 @@ int profile_gemm_impl(int do_verification,
         instance_id++;
     }
 
-    sleep(2);
+    Sleep(2);
 
     // Run the best instance again
     {

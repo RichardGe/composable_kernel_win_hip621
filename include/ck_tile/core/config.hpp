@@ -14,7 +14,7 @@
     defined(__gfx1034__) || defined(__gfx1035__) || defined(__gfx1036__)
 #define __gfx103__
 #endif
-#if defined(__gfx1100__) || defined(__gfx1101__) || defined(__gfx1102__) || defined(__gfx1103__)
+#if defined(__gfx1100__) || defined(__gfx1101__) || defined(__gfx1102__) || defined(__gfx1103__) || defined(__gfx1150__) || defined(__gfx1151__)
 #define __gfx11__
 #endif
 
