@@ -19,6 +19,7 @@ set(PROFILER_SOURCES
     profile_conv_tensor_rearrange.cpp
     profile_transpose.cpp
     profile_permute_scale.cpp
+    ../../include/getopt.cpp
 )
 
 if(GPU_TARGETS MATCHES "gfx9")

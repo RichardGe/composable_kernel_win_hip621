@@ -86,16 +86,16 @@ __global__ void
     const index_t n_idx = __builtin_amdgcn_readfirstlane(blockIdx.y / num_blocks_per_n);
 
     const long_index_t a_batch_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_groups.GetAPtrOffset(g_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_groups.GetAPtrOffset(g_idx));
     const long_index_t b_batch_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_groups.GetBPtrOffset(g_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_groups.GetBPtrOffset(g_idx));
     const long_index_t e_batch_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_groups.GetEPtrOffset(g_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_groups.GetEPtrOffset(g_idx));
 
     const long_index_t a_n_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_n.GetAPtrOffset(n_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_n.GetAPtrOffset(n_idx));
     const long_index_t e_n_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_n.GetEPtrOffset(n_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_n.GetEPtrOffset(n_idx));
 
     __shared__ char p_shared[GridwiseGemm::GetSharedMemoryNumberOfByte()];
 
@@ -148,16 +148,16 @@ __global__ void
     const index_t n_idx = __builtin_amdgcn_readfirstlane(blockIdx.y / num_blocks_per_n);
 
     const long_index_t a_batch_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_groups.GetAPtrOffset(g_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_groups.GetAPtrOffset(g_idx));
     const long_index_t b_batch_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_groups.GetBPtrOffset(g_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_groups.GetBPtrOffset(g_idx));
     const long_index_t e_batch_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_groups.GetEPtrOffset(g_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_groups.GetEPtrOffset(g_idx));
 
     const long_index_t a_n_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_n.GetAPtrOffset(n_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_n.GetAPtrOffset(n_idx));
     const long_index_t e_n_offset =
-        amd_wave_read_first_lane(compute_ptr_offset_of_n.GetEPtrOffset(n_idx));
+        amd_wave_read_first_lane(    (int64_t)   compute_ptr_offset_of_n.GetEPtrOffset(n_idx));
 
     // Pass two lds pointer is the key to tell compiler that ds_read/write
     // operate on different lds chunk at same time without order dependecy

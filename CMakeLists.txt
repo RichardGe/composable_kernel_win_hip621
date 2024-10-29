@@ -113,8 +113,13 @@ message("checking which targets are supported")
 if(NOT PROFILER_ONLY)
   if(NOT ENABLE_ASAN_PACKAGING)
     #build CK for all supported targets
-    rocm_check_target_ids(DEFAULT_GPU_TARGETS
-        TARGETS "gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102")
+    
+	# original
+	# rocm_check_target_ids(DEFAULT_GPU_TARGETS       TARGETS "gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102")
+		
+	rocm_check_target_ids(DEFAULT_GPU_TARGETS       TARGETS "gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx1102;gfx1150;gfx1151")
+	
+		
   else()
     #build CK only for xnack-supported targets
     rocm_check_target_ids(DEFAULT_GPU_TARGETS
@@ -503,7 +508,7 @@ if(NOT DEFINED INSTANCES_ONLY)
         LIBRARY_NAME composablekernel
         PACKAGE_NAME examples
    )
-   add_subdirectory(example)
+   # add_subdirectory(example)
    if(BUILD_TESTING)
       add_subdirectory(test)
    endif()

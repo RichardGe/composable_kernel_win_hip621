@@ -75,7 +75,7 @@ function(add_example_executable EXAMPLE_NAME FILE_NAME)
     #only continue if there are some source files left on the list
     if(FILE_NAME)
         if(FILE_NAME MATCHES "_xdl")
-            list(REMOVE_ITEM EX_TARGETS gfx1030 gfx1100 gfx1101 gfx1102 gfx1103)
+            list(REMOVE_ITEM EX_TARGETS gfx1030 gfx1100 gfx1150 gfx1151 gfx1101 gfx1102 gfx1103)
         elseif(FILE_NAME MATCHES "_wmma")
             list(REMOVE_ITEM EX_TARGETS gfx908 gfx90a gfx940 gfx941 gfx942 gfx1030)
         endif()
