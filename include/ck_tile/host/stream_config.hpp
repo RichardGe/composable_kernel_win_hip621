@@ -4,6 +4,7 @@
 #pragma once
 
 #include <hip/hip_runtime.h>
+#include "device_memory.hpp"
 
 namespace ck_tile {
 /*
@@ -30,5 +31,8 @@ struct stream_config
     int cold_niters_       = 3;
     int nrepeat_           = 10;
     bool is_gpu_timer_     = true; // keep compatible
+    bool clear_cache = false;
+    size_t buf_size = 0;
+    DeviceMem cache_buf{buf_size};
 };
 } // namespace ck_tile

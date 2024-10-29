@@ -78,15 +78,21 @@ CK_TILE_HOST float launch_kernel(const stream_config& s, Callables... callables)
     }
     if(s.is_gpu_timer_) {
         gpu_timer timer {};
-
+        float total_time = 0;
         // warmup
         for(int i = 0; i < s.cold_niters_; i++) { (callables(s),...); } HIP_CHECK_ERROR(hipGetLastError());
 
-        timer.start(s.stream_id_);
-        for(int i = 0; i < s.nrepeat_; i++) { (callables(s),...); } HIP_CHECK_ERROR(hipGetLastError());
-        timer.stop(s.stream_id_);
+        for(int i = 0; i < s.nrepeat_; i++) { 
+            if (s.clear_cache) {
+                s.cache_buf.SetValue<int>(i);
+            }
+            timer.start(s.stream_id_);
+            (callables(s),...);
+            timer.stop(s.stream_id_);
+            total_time += timer.duration();
+        } HIP_CHECK_ERROR(hipGetLastError());
 
-        return timer.duration() / s.nrepeat_;
+        return total_time / s.nrepeat_;
     }
     else {
         cpu_timer timer {};

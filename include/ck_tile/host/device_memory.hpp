@@ -6,6 +6,7 @@
 #include <hip/hip_runtime.h>
 #include <stdint.h>
 #include <stdexcept>
+#include <iostream>
 #include "ck_tile/host/hip_check_error.hpp"
 
 namespace ck_tile {
