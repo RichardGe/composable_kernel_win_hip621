@@ -217,8 +217,7 @@ int main(int argc, char* argv[])
         a0_m_k.GenerateTensorValue(GeneratorTensor_1<A0DataType>{});
         quant_b0_k_n.GenerateTensorValue(GeneratorTensor_1<QuantDataType>{});
         // a1_m_k.GenerateTensorValue(GeneratorTensor_1<A1DataType>{});
-        // b1_k_n.GenerateTensorValue(GeneratorTensor_1<B1DataType>{});
-        b1_k_n.GenerateTensorValue(GeneratorTensor_3<B1DataType>{0, 1.0});
+        b1_k_n.GenerateTensorValue(GeneratorTensor_1<B1DataType>{});
         break;
     case 3:
         a0_m_k.GenerateTensorValue(GeneratorTensor_2<A0DataType>{-2, 2});
